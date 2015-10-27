@@ -1,0 +1,7 @@
+releases:
+- name: diego
+  version:  0.1434.0
+- name: cf
+  version: 220
+- name: garden-linux
+  version:  0.307.0

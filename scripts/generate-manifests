@@ -2,9 +2,6 @@
 
 set -e
 
-DIEGO_RELEASE_DIR=$1
-CF_RELEASE_DIR=$2
-
 absolute_path() {
   (cd $1 && pwd)
 }
@@ -12,6 +9,25 @@ absolute_path() {
 scripts_path=$(absolute_path `dirname $0`)
 
 CURRENT_DIR=$(absolute_path $scripts_path/..)
+
+while getopts "d:c:l" opt; do
+  case $opt in
+    d)
+      DIEGO_RELEASE_DIR=$OPTARG
+      ;;
+    c)
+      CF_RELEASE_DIR=$OPTARG
+      ;;
+    l)
+      echo 'Using misc-stubs/legacy-releases.yml for legacy versioned releases'
+      LEGACY_STUBS=$CURRENT_DIR/misc-stubs/legacy-releases.yml
+      ;;
+    \?)
+      echo no dawg >&2
+      ;;
+  esac
+done
+
 OUTPUT_DIR=$CURRENT_DIR/manifests
 TMP_DIR=`mktemp -d -t upgrade-stable-manifests`
 
@@ -20,7 +36,11 @@ echo CF_RELEASE_DIR=$CF_RELEASE_DIR
 
 function usage() {
   >&2 echo "
-  Usage: $0 DIEGO_RELEASE_DIR CF_RELEASE_DIR"
+  Usage: $0 -d DIEGO_RELEASE_DIR -c CF_RELEASE_DIR (-l)
+
+  -d diego release directory location
+  -c cf release directory location
+  -l legacy release versions"
   exit 1
 }
 
@@ -56,7 +76,7 @@ pushd $DIEGO_RELEASE_DIR
     $OUTPUT_DIR \
     > $TMP_DIR/database.yml
 
-  spiff merge $TMP_DIR/database.yml $CURRENT_DIR/database/deployment-name.yml > $OUTPUT_DIR/database.yml
+  spiff merge $TMP_DIR/database.yml $CURRENT_DIR/database/deployment-name.yml $LEGACY_STUBS > $OUTPUT_DIR/database.yml
 
   ./scripts/generate-deployment-manifest \
     $TMP_DIR/director.yml \
@@ -68,7 +88,7 @@ pushd $DIEGO_RELEASE_DIR
     $OUTPUT_DIR \
     > $TMP_DIR/brain-and-pals.yml
 
-  spiff merge $TMP_DIR/brain-and-pals.yml $CURRENT_DIR/brain-and-pals/deployment-name.yml > $OUTPUT_DIR/brain-and-pals.yml
+  spiff merge $TMP_DIR/brain-and-pals.yml $CURRENT_DIR/brain-and-pals/deployment-name.yml $LEGACY_STUBS > $OUTPUT_DIR/brain-and-pals.yml
 
   ./scripts/generate-deployment-manifest \
     $TMP_DIR/director.yml \
@@ -80,7 +100,7 @@ pushd $DIEGO_RELEASE_DIR
     $OUTPUT_DIR \
     > $TMP_DIR/cell1.yml
 
-  spiff merge $TMP_DIR/cell1.yml $CURRENT_DIR/cell1/deployment-name.yml > $OUTPUT_DIR/cell1.yml
+  spiff merge $TMP_DIR/cell1.yml $CURRENT_DIR/cell1/deployment-name.yml $LEGACY_STUBS > $OUTPUT_DIR/cell1.yml
 
   ./scripts/generate-deployment-manifest \
     $TMP_DIR/director.yml \
@@ -92,5 +112,5 @@ pushd $DIEGO_RELEASE_DIR
     $OUTPUT_DIR \
     > $TMP_DIR/cell2.yml
 
-  spiff merge $TMP_DIR/cell2.yml $CURRENT_DIR/cell2/deployment-name.yml > $OUTPUT_DIR/cell2.yml
+  spiff merge $TMP_DIR/cell2.yml $CURRENT_DIR/cell2/deployment-name.yml $LEGACY_STUBS > $OUTPUT_DIR/cell2.yml
 popd
