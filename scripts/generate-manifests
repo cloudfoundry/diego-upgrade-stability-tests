@@ -3,7 +3,7 @@
 set -e
 
 DIEGO_RELEASE_DIR=$1
-
+CF_RELEASE_DIR=$2
 
 absolute_path() {
   (cd $1 && pwd)
@@ -17,11 +17,10 @@ TMP_DIR=`mktemp -d -t upgrade-stable-manifests`
 
 echo DIEGO_RELEASE_DIR=$DIEGO_RELEASE_DIR
 echo CF_RELEASE_DIR=$CF_RELEASE_DIR
-echo MANIFESTS_DIR=$MANIFESTS_DIR
 
 function usage() {
   >&2 echo "
-  Usage: $0 DIEGO_RELEASE_DIR"
+  Usage: $0 DIEGO_RELEASE_DIR CF_RELEASE_DIR"
   exit 1
 }
 
@@ -30,15 +29,25 @@ if [ ! -d "${DIEGO_RELEASE_DIR}" ]; then
   usage
 fi
 
+if [ ! -d "${CF_RELEASE_DIR}" ]; then
+  >&2 echo "CF Release Directory '${CF_RELEASE_DIR}' is not a directory"
+  usage
+fi
+
 mkdir -p $OUTPUT_DIR
 
+DIRECTOR_UUID=$(bosh status | grep UUID | awk '{print $2}')
+
+echo "director_uuid: ${DIRECTOR_UUID}" > $TMP_DIR/director.yml
+
+pushd $CF_RELEASE_DIR
+  ./scripts/generate-bosh-lite-dev-manifest $CURRENT_DIR/misc-stubs/serial-false.yml
+  cp bosh-lite/deployments/cf.yml $OUTPUT_DIR
+popd
+
 pushd $DIEGO_RELEASE_DIR
-  ./scripts/generate-bosh-lite-manifests
-
-  cp bosh-lite-manifests/cf.yml $OUTPUT_DIR
-
   ./scripts/generate-deployment-manifest \
-    bosh-lite-manifests/director.yml \
+    $TMP_DIR/director.yml \
     manifest-generation/bosh-lite-stubs/property-overrides.yml \
     $CURRENT_DIR/database/instance-count-overrides.yml \
     manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
@@ -50,7 +59,7 @@ pushd $DIEGO_RELEASE_DIR
   spiff merge $TMP_DIR/database.yml $CURRENT_DIR/database/deployment-name.yml > $OUTPUT_DIR/database.yml
 
   ./scripts/generate-deployment-manifest \
-    bosh-lite-manifests/director.yml \
+    $TMP_DIR/director.yml \
     manifest-generation/bosh-lite-stubs/property-overrides.yml \
     $CURRENT_DIR/brain-and-pals/instance-count-overrides.yml \
     manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
@@ -62,7 +71,7 @@ pushd $DIEGO_RELEASE_DIR
   spiff merge $TMP_DIR/brain-and-pals.yml $CURRENT_DIR/brain-and-pals/deployment-name.yml > $OUTPUT_DIR/brain-and-pals.yml
 
   ./scripts/generate-deployment-manifest \
-    bosh-lite-manifests/director.yml \
+    $TMP_DIR/director.yml \
     manifest-generation/bosh-lite-stubs/property-overrides.yml \
     $CURRENT_DIR/cell1/instance-count-overrides.yml \
     manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
@@ -74,7 +83,7 @@ pushd $DIEGO_RELEASE_DIR
   spiff merge $TMP_DIR/cell1.yml $CURRENT_DIR/cell1/deployment-name.yml > $OUTPUT_DIR/cell1.yml
 
   ./scripts/generate-deployment-manifest \
-    bosh-lite-manifests/director.yml \
+    $TMP_DIR/director.yml \
     manifest-generation/bosh-lite-stubs/property-overrides.yml \
     $CURRENT_DIR/cell2/instance-count-overrides.yml \
     manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
