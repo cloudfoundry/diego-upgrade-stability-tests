@@ -1,0 +1,110 @@
+iaas_settings:
+  stemcell:
+    name: bosh-warden-boshlite-ubuntu-trusty-go_agent
+    version: latest
+  compilation_cloud_properties: {}
+  resource_pool_cloud_properties:
+    - name: access_z1
+      cloud_properties: {}
+    - name: access_z2
+      cloud_properties: {}
+    - name: access_z3
+      cloud_properties: {}
+    - name: brain_z1
+      cloud_properties: {}
+    - name: brain_z2
+      cloud_properties: {}
+    - name: brain_z3
+      cloud_properties: {}
+    - name: cc_bridge_z1
+      cloud_properties: {}
+    - name: cc_bridge_z2
+      cloud_properties: {}
+    - name: cc_bridge_z3
+      cloud_properties: {}
+    - name: cell_z1
+      cloud_properties: {}
+    - name: cell_z2
+      cloud_properties: {}
+    - name: cell_z3
+      cloud_properties: {}
+    - name: colocated_z1
+      cloud_properties: {}
+    - name: colocated_z2
+      cloud_properties: {}
+    - name: colocated_z3
+      cloud_properties: {}
+    - name: database_z1
+      cloud_properties: {}
+    - name: database_z2
+      cloud_properties: {}
+    - name: database_z3
+      cloud_properties: {}
+    - name: route_emitter_z1
+      cloud_properties: {}
+    - name: route_emitter_z2
+      cloud_properties: {}
+    - name: route_emitter_z3
+      cloud_properties: {}
+  subnet_configs:
+  # Need 10 Dynamic IPs for 6 Compilation VMs, 1 Access, 1 Brain, 1 CC Bridge,
+  # and 1 Route Emitter
+  - name: diego1
+    type: manual
+    subnets:
+    - range: 10.244.18.0/30
+      reserved:
+      - 10.244.18.1
+      static: []
+      cloud_properties: {}
+    - range: 10.244.18.4/30
+      reserved:
+      - 10.244.18.5
+      static: []
+      cloud_properties: {}
+    - range: 10.244.18.8/30
+      reserved:
+      - 10.244.18.9
+      static: []
+      cloud_properties: {}
+    - range: 10.244.18.12/30
+      reserved:
+      - 10.244.18.13
+      static: []
+      cloud_properties: {}
+    - range: 10.244.18.16/30
+      reserved:
+      - 10.244.18.17
+      static: []
+      cloud_properties: {}
+    - range: 10.244.18.20/30
+      reserved:
+      - 10.244.18.21
+      static: []
+      cloud_properties: {}
+    - range: 10.244.18.24/30
+      reserved:
+      - 10.244.18.25
+      static: []
+      cloud_properties: {}
+    - range: 10.244.18.28/30
+      reserved:
+      - 10.244.18.29
+      static: []
+      cloud_properties: {}
+    - range: 10.244.18.32/30
+      reserved:
+      - 10.244.18.33
+      static: []
+      cloud_properties: {}
+    - range: 10.244.18.36/30
+      reserved:
+      - 10.244.18.37
+      static: []
+      cloud_properties: {}
+  - name: diego2
+    type: manual
+    subnets: []
+  - name: diego3
+    type: manual
+    subnets: []

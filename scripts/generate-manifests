@@ -1,0 +1,87 @@
+#!/bin/bash
+
+set -e
+
+DIEGO_RELEASE_DIR=$1
+
+
+absolute_path() {
+  (cd $1 && pwd)
+}
+
+scripts_path=$(absolute_path `dirname $0`)
+
+CURRENT_DIR=$(absolute_path $scripts_path/..)
+OUTPUT_DIR=$CURRENT_DIR/manifests
+TMP_DIR=`mktemp -d -t upgrade-stable-manifests`
+
+echo DIEGO_RELEASE_DIR=$DIEGO_RELEASE_DIR
+echo CF_RELEASE_DIR=$CF_RELEASE_DIR
+echo MANIFESTS_DIR=$MANIFESTS_DIR
+
+function usage() {
+  >&2 echo "
+  Usage: $0 DIEGO_RELEASE_DIR"
+  exit 1
+}
+
+if [ ! -d "${DIEGO_RELEASE_DIR}" ]; then
+  >&2 echo "Diego Release Directory '${DIEGO_RELEASE_DIR}' is not a directory"
+  usage
+fi
+
+mkdir -p $OUTPUT_DIR
+
+pushd $DIEGO_RELEASE_DIR
+  ./scripts/generate-bosh-lite-manifests
+
+  cp bosh-lite-manifests/cf.yml $OUTPUT_DIR
+
+  ./scripts/generate-deployment-manifest \
+    bosh-lite-manifests/director.yml \
+    manifest-generation/bosh-lite-stubs/property-overrides.yml \
+    $CURRENT_DIR/database/instance-count-overrides.yml \
+    manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
+    $CURRENT_DIR/database/iaas-settings.yml \
+    manifest-generation/bosh-lite-stubs/additional-jobs.yml \
+    $OUTPUT_DIR \
+    > $TMP_DIR/database.yml
+
+  spiff merge $TMP_DIR/database.yml $CURRENT_DIR/database/deployment-name.yml > $OUTPUT_DIR/database.yml
+
+  ./scripts/generate-deployment-manifest \
+    bosh-lite-manifests/director.yml \
+    manifest-generation/bosh-lite-stubs/property-overrides.yml \
+    $CURRENT_DIR/brain-and-pals/instance-count-overrides.yml \
+    manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
+    $CURRENT_DIR/brain-and-pals/iaas-settings.yml \
+    manifest-generation/bosh-lite-stubs/additional-jobs.yml \
+    $OUTPUT_DIR \
+    > $TMP_DIR/brain-and-pals.yml
+
+  spiff merge $TMP_DIR/brain-and-pals.yml $CURRENT_DIR/brain-and-pals/deployment-name.yml > $OUTPUT_DIR/brain-and-pals.yml
+
+  ./scripts/generate-deployment-manifest \
+    bosh-lite-manifests/director.yml \
+    manifest-generation/bosh-lite-stubs/property-overrides.yml \
+    $CURRENT_DIR/cell1/instance-count-overrides.yml \
+    manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
+    $CURRENT_DIR/cell1/iaas-settings.yml \
+    manifest-generation/bosh-lite-stubs/additional-jobs.yml \
+    $OUTPUT_DIR \
+    > $TMP_DIR/cell1.yml
+
+  spiff merge $TMP_DIR/cell1.yml $CURRENT_DIR/cell1/deployment-name.yml > $OUTPUT_DIR/cell1.yml
+
+  ./scripts/generate-deployment-manifest \
+    bosh-lite-manifests/director.yml \
+    manifest-generation/bosh-lite-stubs/property-overrides.yml \
+    $CURRENT_DIR/cell2/instance-count-overrides.yml \
+    manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
+    $CURRENT_DIR/cell2/iaas-settings.yml \
+    manifest-generation/bosh-lite-stubs/additional-jobs.yml \
+    $OUTPUT_DIR \
+    > $TMP_DIR/cell2.yml
+
+  spiff merge $TMP_DIR/cell2.yml $CURRENT_DIR/cell2/deployment-name.yml > $OUTPUT_DIR/cell2.yml
+popd
