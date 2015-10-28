@@ -1,0 +1,7 @@
+{
+  "bosh_director_url": "192.168.50.4",
+  "bosh_admin_user": "admin",
+  "bosh_admin_password": "admin",
+  "diego_release_path": "../diego-release",
+  "cf_release_path": "../cf-release"
+}
