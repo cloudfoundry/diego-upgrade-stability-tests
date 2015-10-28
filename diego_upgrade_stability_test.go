@@ -26,8 +26,8 @@ var _ = Describe("Upgrade Stability Tests", func() {
 
 		By("Generating the legacy deployment manifests for 5 piece wise deployments")
 		generateManifestCmd := exec.Command("./scripts/generate-manifests",
-			"-d", config.diegoReleasePath,
-			"-c", config.cfReleasePath,
+			"-d", config.DiegoReleasePath,
+			"-c", config.CfReleasePath,
 			"-l",
 		)
 

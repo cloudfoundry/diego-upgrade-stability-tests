@@ -14,12 +14,12 @@ import (
 )
 
 type TestConfig struct {
-	boshDirectorURL   string `json:"bosh_director_url"`
-	boshAdminUser     string `json:"bosh_admin_user"`
-	boshAdminPassword string `json:"bosh_admin_password"`
+	BoshDirectorURL   string `json:"bosh_director_url"`
+	BoshAdminUser     string `json:"bosh_admin_user"`
+	BoshAdminPassword string `json:"bosh_admin_password"`
 
-	diegoReleasePath string `json:"diego_release_path"`
-	cfReleasePath    string `json:"cf_release_path"`
+	DiegoReleasePath string `json:"diego_release_path"`
+	CfReleasePath    string `json:"cf_release_path"`
 }
 
 const BOSH_DEPLOY_TIMEOUT = 10 * time.Minute
@@ -45,12 +45,12 @@ var _ = BeforeSuite(func() {
 	err = decoder.Decode(config)
 	Expect(err).NotTo(HaveOccurred())
 
-	targetCmd := exec.Command("bosh", "target", config.boshDirectorURL)
+	targetCmd := exec.Command("bosh", "target", config.BoshDirectorURL)
 	sess, err := gexec.Start(targetCmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
 	Eventually(sess, COMMAND_TIMEOUT).Should(gexec.Exit(0))
 
-	loginCmd := exec.Command("bosh", "login", config.boshAdminUser, config.boshAdminPassword)
+	loginCmd := exec.Command("bosh", "login", config.BoshAdminUser, config.BoshAdminPassword)
 	sess, err = gexec.Start(loginCmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
 	Eventually(sess, COMMAND_TIMEOUT).Should(gexec.Exit(0))
