@@ -29,7 +29,7 @@ while getopts "d:c:l" opt; do
 done
 
 OUTPUT_DIR=$CURRENT_DIR/manifests
-TMP_DIR=`mktemp -d -t upgrade-stable-manifests`
+TMP_DIR=`mktemp -d -t upgrade-stable-manifests.XXXXXXXXXXXX`
 
 echo DIEGO_RELEASE_DIR=$DIEGO_RELEASE_DIR
 echo CF_RELEASE_DIR=$CF_RELEASE_DIR
