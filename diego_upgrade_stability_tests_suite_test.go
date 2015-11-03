@@ -8,6 +8,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 
 	"testing"
 )
@@ -48,4 +49,9 @@ var _ = BeforeSuite(func() {
 	decoder := json.NewDecoder(configFile)
 	err = decoder.Decode(config)
 	Expect(err).NotTo(HaveOccurred())
+
+	boshTargetCmd := bosh("target", config.BoshDirectorURL)
+	sess, err := gexec.Start(boshTargetCmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred())
+	Eventually(sess, COMMAND_TIMEOUT).Should(gexec.Exit(0))
 })
