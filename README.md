@@ -23,6 +23,21 @@ EOF
 export CONFIG=$PWD/config.json
 ```
 
+The DUSTs require that your local diego and cf releases by checked out to the stable versions.
+This can be done by running the following:
+
+```
+pushd ../diego-release
+  git co v0.1434.0
+  ./scripts/update
+popd
+
+pushd ../cf-release
+  git co v220
+  ./scripts/update
+popd
+```
+
 You can then run the following tests with:
 
 ```bash

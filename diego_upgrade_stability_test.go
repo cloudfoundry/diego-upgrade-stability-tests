@@ -43,7 +43,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(sess, BOSH_DEPLOY_TIMEOUT).Should(Exit(0))
-		Expect(sess).To(Say("Deployed `cf-warden' to `Bosh Lite Director'"))
+		Expect(sess).To(Say("Deployed `cf-warden'"))
 
 		By("Deploying the Database Release")
 		deployDatabaseCmd := bosh("-d", "manifests/database.yml", "-n", "deploy")
@@ -52,7 +52,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(sess, BOSH_DEPLOY_TIMEOUT).Should(Exit(0))
-		Expect(sess).To(Say("Deployed `cf-warden-diego-database' to `Bosh Lite Director'"))
+		Expect(sess).To(Say("Deployed `cf-warden-diego-database'"))
 
 		By("Deploying the Brain and Pals Release")
 		deployBrainAndPalsCmd := bosh("-d", "manifests/brain-and-pals.yml", "-n", "deploy")
@@ -61,7 +61,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(sess, BOSH_DEPLOY_TIMEOUT).Should(Exit(0))
-		Expect(sess).To(Say("Deployed `cf-warden-diego-brain-and-pals' to `Bosh Lite Director'"))
+		Expect(sess).To(Say("Deployed `cf-warden-diego-brain-and-pals'"))
 
 		By("Deploying the Cell 1 Release")
 		deployCell1Cmd := bosh("-d", "manifests/cell1.yml", "-n", "deploy")
@@ -70,7 +70,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(sess, BOSH_DEPLOY_TIMEOUT).Should(Exit(0))
-		Expect(sess).To(Say("Deployed `cf-warden-diego-cell1' to `Bosh Lite Director'"))
+		Expect(sess).To(Say("Deployed `cf-warden-diego-cell1'"))
 
 		By("Deploying the Cell 2 Release")
 		deployCell2Cmd := bosh("-d", "manifests/cell2.yml", "-n", "deploy")
@@ -79,6 +79,6 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(sess, BOSH_DEPLOY_TIMEOUT).Should(Exit(0))
-		Expect(sess).To(Say("Deployed `cf-warden-diego-cell2' to `Bosh Lite Director'"))
+		Expect(sess).To(Say("Deployed `cf-warden-diego-cell2'"))
 	})
 })
