@@ -61,7 +61,7 @@ DIRECTOR_UUID=$(bosh status | grep UUID | awk '{print $2}')
 echo "director_uuid: ${DIRECTOR_UUID}" > $TMP_DIR/director.yml
 
 pushd $CF_RELEASE_DIR
-  ./scripts/generate-bosh-lite-dev-manifest $CURRENT_DIR/misc-stubs/serial-false.yml
+  ./scripts/generate-bosh-lite-dev-manifest
   spiff merge bosh-lite/deployments/cf.yml $LEGACY_STUBS > $OUTPUT_DIR/cf.yml
 popd
 
