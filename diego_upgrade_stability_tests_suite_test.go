@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-const BOSH_DEPLOY_TIMEOUT = 10 * time.Minute
+const BOSH_DEPLOY_TIMEOUT = 60 * time.Minute
 const COMMAND_TIMEOUT = 30 * time.Second
 
 var config *TestConfig
