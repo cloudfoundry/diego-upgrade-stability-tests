@@ -4,6 +4,14 @@ This test suite exercises the upgrade path from the stable CF/Diego configuratio
 
 ## Usage
 
+### Upload the necessary legacy releases to your bosh-lite
+
+```
+bosh upload release https://bosh.io/d/github.com/cloudfoundry/cf-release?v=220
+bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/diego-release?v=0.1434.0
+bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release?v=0.307.0
+```
+
 ### Running the Tests
 
 The DUSTs require the CONFIG environment variable to be set to the path of a valid configuration JSON file.
