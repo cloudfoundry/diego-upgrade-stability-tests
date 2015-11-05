@@ -36,39 +36,19 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
 
 		By("Deploying CF Release")
-		deployCFCmd := bosh("-d", "manifests/cf.yml", "-n", "deploy")
-		sess, err = Start(deployCFCmd, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(sess, BOSH_DEPLOY_TIMEOUT).Should(Exit(0))
-		Expect(sess).To(Say("Deployed `cf-warden'"))
+		boshCmd("manifests/cf.yml", "deploy", "Deployed `cf-warden'")
 
 		By("Deploying the Database Release")
-		deployDatabaseCmd := bosh("-d", "manifests/database.yml", "-n", "deploy")
-		sess, err = Start(deployDatabaseCmd, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(sess, BOSH_DEPLOY_TIMEOUT).Should(Exit(0))
-		Expect(sess).To(Say("Deployed `cf-warden-diego-database'"))
+		boshCmd("manifests/database.yml", "deploy", "Deployed `cf-warden-diego-database'")
 
 		By("Deploying the Brain and Pals Release")
-		deployBrainAndPalsCmd := bosh("-d", "manifests/brain-and-pals.yml", "-n", "deploy")
-		sess, err = Start(deployBrainAndPalsCmd, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(sess, BOSH_DEPLOY_TIMEOUT).Should(Exit(0))
-		Expect(sess).To(Say("Deployed `cf-warden-diego-brain-and-pals'"))
+		boshCmd("manifests/brain-and-pals.yml", "deploy", "Deployed `cf-warden-diego-brain-and-pals'")
 
 		By("Deploying the Cell 1 Release")
-		deployCell1Cmd := bosh("-d", "manifests/cell1.yml", "-n", "deploy")
-		sess, err = Start(deployCell1Cmd, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(sess, BOSH_DEPLOY_TIMEOUT).Should(Exit(0))
-		Expect(sess).To(Say("Deployed `cf-warden-diego-cell1'"))
+		boshCmd("manifests/cell1.yml", "deploy", "Deployed `cf-warden-diego-cell1'")
 
 		By("Deploying the Cell 2 Release")
-		deployCell2Cmd := bosh("-d", "manifests/cell2.yml", "-n", "deploy")
-		sess, err = Start(deployCell2Cmd, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(sess, BOSH_DEPLOY_TIMEOUT).Should(Exit(0))
-		Expect(sess).To(Say("Deployed `cf-warden-diego-cell2'"))
+		boshCmd("manifests/cell2.yml", "deploy", "Deployed `cf-warden-diego-cell2'")
 	})
 
 	It("Upgrades to V-prime", func() {
@@ -81,39 +61,48 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
 
+		// UPGRADE D1
 		By("Deploying the Database Release")
-		deployDatabaseCmd := bosh("-d", "manifests/database.yml", "-n", "deploy")
-		sess, err = Start(deployDatabaseCmd, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(sess, BOSH_DEPLOY_TIMEOUT).Should(Exit(0))
-		Expect(sess).To(Say("Deployed `cf-warden-diego-database'"))
+		boshCmd("manifests/database.yml", "deploy", "Deployed `cf-warden-diego-database'")
 
+		//UPGRADE D3
 		By("Deploying the Cell 1 Release")
-		deployCell1Cmd := bosh("-d", "manifests/cell1.yml", "-n", "deploy")
-		sess, err = Start(deployCell1Cmd, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(sess, BOSH_DEPLOY_TIMEOUT).Should(Exit(0))
-		Expect(sess).To(Say("Deployed `cf-warden-diego-cell1'"))
+		boshCmd("manifests/cell1.yml", "deploy", "Deployed `cf-warden-diego-cell1'")
 
+		// AFTER UPGRADING D3, STOP D4
+		By("Stopping the Cell 2 Deployment")
+		boshCmd("manifests/cell2.yml", "stop cell_z2 --force", "cell_z2/0 has been stopped")
+
+		By("Running Smoke Tests #1")
+		smokeTestDiego()
+
+		// UPGRADE D2
 		By("Deploying the Brain and Pals Release")
-		deployBrainAndPalsCmd := bosh("-d", "manifests/brain-and-pals.yml", "-n", "deploy")
-		sess, err = Start(deployBrainAndPalsCmd, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(sess, BOSH_DEPLOY_TIMEOUT).Should(Exit(0))
-		Expect(sess).To(Say("Deployed `cf-warden-diego-brain-and-pals'"))
+		boshCmd("manifests/brain-and-pals.yml", "deploy", "Deployed `cf-warden-diego-brain-and-pals'")
+
+		// START D4
+		By("Starting the Cell 2 Deployment")
+		boshCmd("manifests/cell2.yml", "start cell_z2", "cell_z2/0 has been started")
+
+		// AND STOP D3
+		By("Stopping the Cell 1 Deployment")
+		boshCmd("manifests/cell1.yml", "stop cell_z1", "cell_z1/0 has been stopped")
+
+		By("Running Smoke Tests #2")
+		smokeTestDiego()
 
 		By("Deploying CF Release")
-		deployCFCmd := bosh("-d", "manifests/cf.yml", "-n", "deploy")
-		sess, err = Start(deployCFCmd, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(sess, BOSH_DEPLOY_TIMEOUT).Should(Exit(0))
-		Expect(sess).To(Say("Deployed `cf-warden'"))
+		boshCmd("manifests/cf.yml", "deploy", "Deployed `cf-warden'")
 
+		// BEFORE UPGRADING D4, START D3
+		By("Start the Cell 1 Deployment")
+		boshCmd("manifests/cell1.yml", "start cell_z1", "cell_z1/0 has been started")
+
+		// UPGRADE D4
 		By("Deploying the Cell 2 Release")
-		deployCell2Cmd := bosh("-d", "manifests/cell2.yml", "-n", "deploy")
-		sess, err = Start(deployCell2Cmd, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(sess, BOSH_DEPLOY_TIMEOUT).Should(Exit(0))
-		Expect(sess).To(Say("Deployed `cf-warden-diego-cell2'"))
+		boshCmd("manifests/cell2.yml", "deploy", "Deployed `cf-warden-diego-cell2'")
+
+		By("Running Smoke Tests #3")
+		smokeTestDiego()
 	})
 })

@@ -40,6 +40,9 @@ func TestUpgradeStableManifests(t *testing.T) {
 var _ = BeforeSuite(func() {
 	config = &TestConfig{}
 
+	SetDefaultEventuallyTimeout(time.Minute)
+	SetDefaultEventuallyPollingInterval(time.Second)
+
 	path := os.Getenv("CONFIG")
 	Expect(path).NotTo(Equal(""))
 
