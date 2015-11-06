@@ -62,7 +62,9 @@ echo "director_uuid: ${DIRECTOR_UUID}" > $TMP_DIR/director.yml
 
 pushd $CF_RELEASE_DIR
   BOSH_RELEASES_DIR=$PWD/.. ./scripts/generate-bosh-lite-dev-manifest
-  spiff merge bosh-lite/deployments/cf.yml $LEGACY_STUBS > $OUTPUT_DIR/cf.yml
+  spiff merge bosh-lite/deployments/cf.yml \
+    $CURRENT_DIR/misc-stubs/diego-default.yml \
+    $LEGACY_STUBS > $OUTPUT_DIR/cf.yml
 popd
 
 pushd $DIEGO_RELEASE_DIR

@@ -35,11 +35,6 @@ func guidForAppName(appName string) string {
 	return appGuid
 }
 
-func enableDiego(appName string) {
-	guid := guidForAppName(appName)
-	Eventually(cf.Cf("curl", "/v2/apps/"+guid, "-X", "PUT", "-d", `{"diego": true}`)).Should(gexec.Exit(0))
-}
-
 func smokeTestDiego() {
 	CFAPI := "https://api.bosh-lite.com"
 	CFUser := "admin"
@@ -59,10 +54,8 @@ func smokeTestDiego() {
 	Eventually(cf.Cf("create-space", spaceName)).Should(gexec.Exit(0))
 	Eventually(cf.Cf("target", "-s", spaceName)).Should(gexec.Exit(0))
 
-	Eventually(cf.Cf("push", appName, "-p", "dora", "--no-start", "-i", "2")).Should(gexec.Exit(0))
+	Eventually(cf.Cf("push", appName, "-p", "dora", "-i", "2"), 5*time.Minute).Should(gexec.Exit(0))
 	defer func() { Eventually(cf.Cf("delete", "-r", "-f", appName)).Should(gexec.Exit(0)) }()
-	enableDiego(appName)
-	Eventually(cf.Cf("start", appName), 5*time.Minute).Should(gexec.Exit(0))
 	Eventually(cf.Cf("logs", appName, "--recent")).Should(gbytes.Say("[HEALTH/0]"))
 
 	curlAppRouteWithTimeout := func() string {
@@ -72,5 +65,4 @@ func smokeTestDiego() {
 		return string(curlCmd.Out.Contents())
 	}
 	Eventually(curlAppRouteWithTimeout).Should(ContainSubstring("Hi, I'm Dora!"))
-	Eventually(cf.Cf("delete", "-r", "-f", appName)).Should(gexec.Exit(0))
 }
