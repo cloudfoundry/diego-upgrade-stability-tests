@@ -14,7 +14,10 @@ import (
 )
 
 func boshCmd(manifest, action, completeMsg string) {
-	args := []string{"-d", manifest, "-n"}
+	args := []string{"-n"}
+	if manifest != "" {
+		args = append(args, "-d", manifest)
+	}
 	args = append(args, strings.Split(action, " ")...)
 	cmd := bosh(args...)
 	sess, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)

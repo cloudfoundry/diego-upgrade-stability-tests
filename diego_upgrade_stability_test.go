@@ -77,9 +77,10 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		By("Deploying the Cell 1 Release")
 		boshCmd("manifests/cell1.yml", "deploy", "Deployed `cf-warden-diego-cell1'")
 
-		// AFTER UPGRADING D3, STOP D4
+		// AFTER UPGRADING D3, PRESERVE OLD DEPLOYMENT AND STOP D4
 		By("Stopping the Cell 2 Deployment")
-		boshCmd("manifests/cell2.yml", "stop cell_z2 --force", "cell_z2/0 has been stopped")
+		boshCmd("", "download manifest cf-warden-diego-cell2 legacy-cell-2.yml", "Deployment manifest saved to `legacy-cell-2.yml'")
+		boshCmd("legacy-cell-2.yml", "stop cell_z2 --force", "cell_z2/0 has been stopped")
 
 		By("Running Smoke Tests #2")
 		smokeTestDiego()
@@ -93,7 +94,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 
 		// START D4
 		By("Starting the Cell 2 Deployment")
-		boshCmd("manifests/cell2.yml", "start cell_z2", "cell_z2/0 has been started")
+		boshCmd("legacy-cell-2.yml", "start cell_z2", "cell_z2/0 has been started")
 
 		// AND STOP D3
 		By("Stopping the Cell 1 Deployment")
