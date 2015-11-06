@@ -61,10 +61,18 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
 
+		// Roll the Diego Database
+		// ************************************************************ //
 		// UPGRADE D1
 		By("Deploying the Database Release")
 		boshCmd("manifests/database.yml", "deploy", "Deployed `cf-warden-diego-database'")
 
+		By("Running Smoke Tests #1")
+		smokeTestDiego()
+
+		// Rolling some cells, and turning off the other in order to
+		// test the new database, new cells, old brain and CF
+		// ************************************************************ //
 		//UPGRADE D3
 		By("Deploying the Cell 1 Release")
 		boshCmd("manifests/cell1.yml", "deploy", "Deployed `cf-warden-diego-cell1'")
@@ -73,9 +81,12 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		By("Stopping the Cell 2 Deployment")
 		boshCmd("manifests/cell2.yml", "stop cell_z2 --force", "cell_z2/0 has been stopped")
 
-		By("Running Smoke Tests #1")
+		By("Running Smoke Tests #2")
 		smokeTestDiego()
 
+		// Rolling the Brain, but turning of the new cells and turning back on
+		// the old cells to test when everything on diego has rolled except the cells.
+		// ************************************************************ //
 		// UPGRADE D2
 		By("Deploying the Brain and Pals Release")
 		boshCmd("manifests/brain-and-pals.yml", "deploy", "Deployed `cf-warden-diego-brain-and-pals'")
@@ -88,12 +99,21 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		By("Stopping the Cell 1 Deployment")
 		boshCmd("manifests/cell1.yml", "stop cell_z1", "cell_z1/0 has been stopped")
 
-		By("Running Smoke Tests #2")
+		By("Running Smoke Tests #3")
 		smokeTestDiego()
 
+		// Roll CF to test when everything is upgraded except the cells.
+		// ************************************************************ //
+		// UPGRADE CF
 		By("Deploying CF Release")
 		boshCmd("manifests/cf.yml", "deploy", "Deployed `cf-warden'")
 
+		By("Running Smoke Tests #4")
+		smokeTestDiego()
+
+		// Roll the rest of the cells and test that everything is now stable at the
+		// new deployment.
+		// ************************************************************ //
 		// BEFORE UPGRADING D4, START D3
 		By("Start the Cell 1 Deployment")
 		boshCmd("manifests/cell1.yml", "start cell_z1", "cell_z1/0 has been started")
@@ -102,7 +122,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		By("Deploying the Cell 2 Release")
 		boshCmd("manifests/cell2.yml", "deploy", "Deployed `cf-warden-diego-cell2'")
 
-		By("Running Smoke Tests #3")
+		By("Running Smoke Tests #5")
 		smokeTestDiego()
 	})
 })
