@@ -64,5 +64,7 @@ func smokeTestDiego() {
 		Expect(string(curlCmd.Err.Contents())).To(HaveLen(0))
 		return string(curlCmd.Out.Contents())
 	}
+
 	Eventually(curlAppRouteWithTimeout).Should(ContainSubstring("Hi, I'm Dora!"))
+	Eventually(cf.Cf("cf", "ssh", "dora", "-c", `"cat app/Gemfile"`)).Should(gexec.Exit(0))
 }
