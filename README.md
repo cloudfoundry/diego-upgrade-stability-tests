@@ -12,7 +12,7 @@ bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/diego-re
 bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release?v=0.307.0
 ```
 
-### Running the Tests
+### Deploying V0 (legacy)
 
 The DUSTs require the CONFIG environment variable to be set to the path of a valid configuration JSON file.
 The following commands will setup the `CONFIG` for a [bosh-lite](https://github.com/cloudfoundry/bosh-lite) installation.
@@ -31,7 +31,7 @@ EOF
 export CONFIG=$PWD/config.json
 ```
 
-The DUSTs require that your local diego and cf releases by checked out to the stable versions.
+The DUSTs require that your local diego and cf releases be checked out to the stable versions.
 This can be done by running the following:
 
 ```
@@ -49,7 +49,30 @@ popd
 You can then run the following tests with:
 
 ```bash
-ginkgo -v
+ginkgo -v -focus="V0"
+```
+
+### Deploying V-prime
+
+The DUSTs require that your local diego and cf releases be checked out to the desired V-prime versions.
+Deploying V-prime deploys the latest release on your bosh-lite, make sure to upload the desired cf, diego, garden-linux, and etcd releases.
+
+```
+pushd ../diego-release
+  git co v0.1439.0
+  ./scripts/update
+popd
+
+pushd ../cf-release
+  git co v223
+  ./scripts/update
+popd
+```
+
+You can then run the following tests with:
+
+```bash
+ginkgo -v -focus="V-prime"
 ```
 
 ### Generating the Manifests
