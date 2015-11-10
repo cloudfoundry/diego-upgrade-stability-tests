@@ -56,10 +56,6 @@ fi
 
 mkdir -p $OUTPUT_DIR
 
-DIRECTOR_UUID=$(bosh status | grep UUID | awk '{print $2}')
-
-echo "director_uuid: ${DIRECTOR_UUID}" > $TMP_DIR/director.yml
-
 pushd $CF_RELEASE_DIR
   BOSH_RELEASES_DIR=$PWD/.. ./scripts/generate-bosh-lite-dev-manifest
   spiff merge bosh-lite/deployments/cf.yml \
@@ -69,7 +65,6 @@ popd
 
 pushd $DIEGO_RELEASE_DIR
   ./scripts/generate-deployment-manifest \
-    $TMP_DIR/director.yml \
     manifest-generation/bosh-lite-stubs/property-overrides.yml \
     $CURRENT_DIR/database/instance-count-overrides.yml \
     manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
@@ -81,7 +76,6 @@ pushd $DIEGO_RELEASE_DIR
   spiff merge $TMP_DIR/database.yml $CURRENT_DIR/database/deployment-name.yml $LEGACY_STUBS > $OUTPUT_DIR/database.yml
 
   ./scripts/generate-deployment-manifest \
-    $TMP_DIR/director.yml \
     manifest-generation/bosh-lite-stubs/property-overrides.yml \
     $CURRENT_DIR/brain-and-pals/instance-count-overrides.yml \
     manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
@@ -93,7 +87,6 @@ pushd $DIEGO_RELEASE_DIR
   spiff merge $TMP_DIR/brain-and-pals.yml $CURRENT_DIR/brain-and-pals/deployment-name.yml $LEGACY_STUBS > $OUTPUT_DIR/brain-and-pals.yml
 
   ./scripts/generate-deployment-manifest \
-    $TMP_DIR/director.yml \
     manifest-generation/bosh-lite-stubs/property-overrides.yml \
     $CURRENT_DIR/cell1/instance-count-overrides.yml \
     manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
@@ -105,7 +98,6 @@ pushd $DIEGO_RELEASE_DIR
   spiff merge $TMP_DIR/cell1.yml $CURRENT_DIR/cell1/deployment-name.yml $LEGACY_STUBS > $OUTPUT_DIR/cell1.yml
 
   ./scripts/generate-deployment-manifest \
-    $TMP_DIR/director.yml \
     manifest-generation/bosh-lite-stubs/property-overrides.yml \
     $CURRENT_DIR/cell2/instance-count-overrides.yml \
     manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
