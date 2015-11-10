@@ -13,7 +13,8 @@ var _ = Describe("Upgrade Stability Tests", func() {
 	var sess *Session
 	var err error
 
-	It("Deploys V0", func() {
+	BeforeEach(func() {
+		By("Deploying V0")
 		By("Ensuring the V0 is not currently deployed")
 		deploymentsCmd := bosh("deployments")
 		sess, err = Start(deploymentsCmd, GinkgoWriter, GinkgoWriter)
@@ -25,10 +26,10 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Expect(sess).NotTo(Say("cf-warden-diego-cell2"))
 		Expect(sess).NotTo(Say("cf-warden-diego-database"))
 
-		By("Generating the legacy deployment manifests for 5 piece wise deployments")
+		By("Generating the V0 deployment manifests for 5 piece wise deployments")
 		generateManifestCmd := exec.Command("./scripts/generate-manifests",
-			"-d", config.DiegoReleasePath,
-			"-c", config.CfReleasePath,
+			"-d", config.V0DiegoReleasePath,
+			"-c", config.V0CfReleasePath,
 			"-l",
 		)
 		sess, err = Start(generateManifestCmd, GinkgoWriter, GinkgoWriter)
@@ -51,11 +52,11 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		boshCmd("manifests/cell2.yml", "deploy", "Deployed `cf-warden-diego-cell2'")
 	})
 
-	It("Upgrades to V-prime", func() {
-		By("Generating the V-prime deployment manifests for 5 piece wise deployments")
+	It("Upgrades from V0 to V1", func() {
+		By("Generating the V1 deployment manifests for 5 piece wise deployments")
 		generateManifestCmd := exec.Command("./scripts/generate-manifests",
-			"-d", config.DiegoReleasePath,
-			"-c", config.CfReleasePath,
+			"-d", config.V1DiegoReleasePath,
+			"-c", config.V1CfReleasePath,
 		)
 		sess, err := Start(generateManifestCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())

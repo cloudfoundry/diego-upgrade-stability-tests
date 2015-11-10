@@ -23,8 +23,10 @@ type TestConfig struct {
 	BoshAdminUser     string `json:"bosh_admin_user"`
 	BoshAdminPassword string `json:"bosh_admin_password"`
 
-	DiegoReleasePath string `json:"diego_release_path"`
-	CfReleasePath    string `json:"cf_release_path"`
+	V0DiegoReleasePath string `json:"v0_diego_release_path"`
+	V0CfReleasePath    string `json:"v0_cf_release_path"`
+	V1DiegoReleasePath string `json:"v1_diego_release_path"`
+	V1CfReleasePath    string `json:"v1_cf_release_path"`
 }
 
 func bosh(args ...string) *exec.Cmd {
