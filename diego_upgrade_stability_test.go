@@ -16,11 +16,11 @@ var _ = Describe("Upgrade Stability Tests", func() {
 	BeforeEach(func() {
 		By("Deploying V0")
 		By("Deleting existing deployments")
-		boshCmd("", "delete deployment cf-warden", "Deleted deployment `cf-warden'")
-		boshCmd("", "delete deployment cf-warden-diego-database", "Deleted deployment `cf-warden-diego-database'")
-		boshCmd("", "delete deployment cf-warden-diego-brain-and-pals", "Deleted deployment `cf-warden-diego-brain-and-pals'")
-		boshCmd("", "delete deployment cf-warden-diego-cell1", "Deleted deployment `cf-warden-diego-cell1'")
-		boshCmd("", "delete deployment cf-warden-diego-cell2", "Deleted deployment `cf-warden-diego-cell2'")
+		boshCmd("", "delete deployment cf-warden", "")
+		boshCmd("", "delete deployment cf-warden-diego-database", "")
+		boshCmd("", "delete deployment cf-warden-diego-brain-and-pals", "")
+		boshCmd("", "delete deployment cf-warden-diego-cell1", "")
+		boshCmd("", "delete deployment cf-warden-diego-cell2", "")
 
 		By("Ensuring the V0 is not currently deployed")
 		deploymentsCmd := bosh("deployments")
