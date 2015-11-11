@@ -25,7 +25,7 @@ function generate_partial_manifest() {
     manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
     $CURRENT_DIR/${component}/iaas-settings.yml \
     manifest-generation/bosh-lite-stubs/additional-jobs.yml \
-    manifest-generation/bosh-lite-stubs/release-versions.yml \
+    # manifest-generation/bosh-lite-stubs/release-versions.yml \
     $OUTPUT_DIR \
     > $TMP_DIR/${component}.yml
 
