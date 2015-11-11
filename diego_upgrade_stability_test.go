@@ -47,8 +47,6 @@ var _ = Describe("Upgrade Stability Tests", func() {
 			"-c", "repos/cf-release",
 			"-l",
 		)
-		sess, err = Start(cloneCfCommand, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
 		sess, err = Start(generateManifestCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
