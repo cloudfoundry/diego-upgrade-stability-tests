@@ -1,4 +1,11 @@
 ---
+jobs:
+- name: runner_z1
+  instances: 0
+  networks: null
+- name: runner_z2
+  instances: 0
+  networks: null
 properties:
   cc:
     default_to_diego_backend: true

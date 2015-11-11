@@ -6,6 +6,34 @@ absolute_path() {
   (cd $1 && pwd)
 }
 
+function usage() {
+  >&2 echo "
+  Usage: $0 -d DIEGO_RELEASE_DIR -c CF_RELEASE_DIR (-l)
+
+  -d diego release directory location
+  -c cf release directory location
+  -l legacy release versions"
+  exit 1
+}
+
+function generate_partial_manifest() {
+  component=$1
+
+  ./scripts/generate-deployment-manifest \
+    manifest-generation/bosh-lite-stubs/property-overrides.yml \
+    $CURRENT_DIR/${component}/instance-count-overrides.yml \
+    manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
+    $CURRENT_DIR/${component}/iaas-settings.yml \
+    manifest-generation/bosh-lite-stubs/additional-jobs.yml \
+    manifest-generation/bosh-lite-stubs/release-versions.yml \
+    $OUTPUT_DIR \
+    > $TMP_DIR/${component}.yml
+
+  spiff merge $TMP_DIR/${component}.yml $CURRENT_DIR/${component}/deployment-name.yml $LEGACY_STUBS > $OUTPUT_DIR/${component}.yml
+
+  echo "Created partial manifest for ${component}: ${OUTPUT_DIR}/${component}.yml"
+}
+
 scripts_path=$(absolute_path `dirname $0`)
 
 CURRENT_DIR=$(absolute_path $scripts_path/..)
@@ -34,16 +62,6 @@ TMP_DIR=`mktemp -d -t upgrade-stable-manifests.XXXXXXXXXXXX`
 echo DIEGO_RELEASE_DIR=$DIEGO_RELEASE_DIR
 echo CF_RELEASE_DIR=$CF_RELEASE_DIR
 
-function usage() {
-  >&2 echo "
-  Usage: $0 -d DIEGO_RELEASE_DIR -c CF_RELEASE_DIR (-l)
-
-  -d diego release directory location
-  -c cf release directory location
-  -l legacy release versions"
-  exit 1
-}
-
 if [ ! -d "${DIEGO_RELEASE_DIR}" ]; then
   >&2 echo "Diego Release Directory '${DIEGO_RELEASE_DIR}' is not a directory"
   usage
@@ -57,29 +75,13 @@ fi
 mkdir -p $OUTPUT_DIR
 
 pushd $CF_RELEASE_DIR > /dev/null
-  BOSH_RELEASES_DIR=$PWD/.. ./scripts/generate-bosh-lite-dev-manifest
-  spiff merge bosh-lite/deployments/cf.yml \
-    $CURRENT_DIR/misc-stubs/diego-default.yml \
-    $LEGACY_STUBS > $OUTPUT_DIR/cf.yml
+  BOSH_RELEASES_DIR=$PWD/.. ./scripts/generate-bosh-lite-dev-manifest \
+    ${CURRENT_DIR}/misc-stubs/diego-default.yml \
+    ${LEGACY_STUBS}
+
+  cp bosh-lite/deployments/cf.yml ${OUTPUT_DIR}/cf.yml
 popd > /dev/null
 
-function generate_partial_manifest() {
-  component=$1
-
-  ./scripts/generate-deployment-manifest \
-    manifest-generation/bosh-lite-stubs/property-overrides.yml \
-    $CURRENT_DIR/${component}/instance-count-overrides.yml \
-    manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
-    $CURRENT_DIR/${component}/iaas-settings.yml \
-    manifest-generation/bosh-lite-stubs/additional-jobs.yml \
-    manifest-generation/bosh-lite-stubs/release-versions.yml \
-    $OUTPUT_DIR \
-    > $TMP_DIR/${component}.yml
-
-  spiff merge $TMP_DIR/${component}.yml $CURRENT_DIR/${component}/deployment-name.yml $LEGACY_STUBS > $OUTPUT_DIR/${component}.yml
-
-  echo "Created partial manifest for ${component}: ${OUTPUT_DIR}/${component}.yml"
-}
 
 pushd $DIEGO_RELEASE_DIR > /dev/null
   generate_partial_manifest database
