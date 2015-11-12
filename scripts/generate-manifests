@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -e -x
 
 absolute_path() {
   (cd $1 && pwd)
@@ -75,7 +75,7 @@ fi
 
 mkdir -p $OUTPUT_DIR
 
-DIRECTOR_UUID=$(bosh status | grep UUID | awk '{print $2}')
+DIRECTOR_UUID=$(bosh status --uuid)
 
 echo "director_uuid: ${DIRECTOR_UUID}" > $TMP_DIR/director.yml
 
