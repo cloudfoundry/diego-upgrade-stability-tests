@@ -16,10 +16,11 @@ function usage() {
   exit 1
 }
 
-function generate_partial_manifest() {
+function generate_component_manifest() {
   component=$1
 
   ./scripts/generate-deployment-manifest \
+    ${TMP_DIR}/director.yml \
     manifest-generation/bosh-lite-stubs/property-overrides.yml \
     $CURRENT_DIR/${component}/instance-count-overrides.yml \
     manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
@@ -31,7 +32,7 @@ function generate_partial_manifest() {
 
   spiff merge $TMP_DIR/${component}.yml $CURRENT_DIR/${component}/deployment-name.yml $LEGACY_STUBS > $OUTPUT_DIR/${component}.yml
 
-  echo "Created partial manifest for ${component}: ${OUTPUT_DIR}/${component}.yml"
+  echo "Created manifest for ${component}: ${OUTPUT_DIR}/${component}.yml"
 }
 
 scripts_path=$(absolute_path `dirname $0`)
@@ -74,6 +75,10 @@ fi
 
 mkdir -p $OUTPUT_DIR
 
+DIRECTOR_UUID=$(bosh status | grep UUID | awk '{print $2}')
+
+echo "director_uuid: ${DIRECTOR_UUID}" > $TMP_DIR/director.yml
+
 pushd $CF_RELEASE_DIR > /dev/null
   BOSH_RELEASES_DIR=$PWD/.. ./scripts/generate-bosh-lite-dev-manifest \
     ${CURRENT_DIR}/misc-stubs/diego-default.yml \
@@ -84,8 +89,8 @@ popd > /dev/null
 
 
 pushd $DIEGO_RELEASE_DIR > /dev/null
-  generate_partial_manifest database
-  generate_partial_manifest brain-and-pals
-  generate_partial_manifest cell1
-  generate_partial_manifest cell2
+  generate_component_manifest database
+  generate_component_manifest brain-and-pals
+  generate_component_manifest cell1
+  generate_component_manifest cell2
 popd > /dev/null
