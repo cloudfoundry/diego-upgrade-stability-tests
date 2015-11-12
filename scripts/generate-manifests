@@ -26,9 +26,19 @@ function generate_component_manifest() {
     manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
     $CURRENT_DIR/${component}/iaas-settings.yml \
     manifest-generation/bosh-lite-stubs/additional-jobs.yml \
-    # manifest-generation/bosh-lite-stubs/release-versions.yml \
     $OUTPUT_DIR \
     > $TMP_DIR/${component}.yml
+
+  # ./scripts/generate-deployment-manifest \
+  #   ${TMP_DIR}/director.yml \
+  #   manifest-generation/bosh-lite-stubs/property-overrides.yml \
+  #   $CURRENT_DIR/${component}/instance-count-overrides.yml \
+  #   manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
+  #   $CURRENT_DIR/${component}/iaas-settings.yml \
+  #   manifest-generation/bosh-lite-stubs/additional-jobs.yml \
+  #   manifest-generation/bosh-lite-stubs/release-versions.yml \
+  #   $OUTPUT_DIR \
+  #   > $TMP_DIR/${component}.yml
 
   spiff merge $TMP_DIR/${component}.yml $CURRENT_DIR/${component}/deployment-name.yml $LEGACY_STUBS > $OUTPUT_DIR/${component}.yml
 
