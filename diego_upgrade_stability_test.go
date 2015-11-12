@@ -34,19 +34,9 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Expect(sess).NotTo(Say("cf-warden-diego-database"))
 
 		By("Generating the V0 deployment manifests for 5 piece wise deployments")
-		cloneCfCommand := exec.Command("bash", "-c", "mkdir -p repos && cd repos && git clone -b v220 https://github.com/cloudfoundry/cf-release && cd cf-release && git submodule update --init src/loggregator")
-		sess, err = Start(cloneCfCommand, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
-
-		cloneDiegoCommand := exec.Command("bash", "-c", "cd repos && git clone -b v0.1434.0 https://github.com/cloudfoundry-incubator/diego-release")
-		sess, err = Start(cloneDiegoCommand, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
-
 		generateManifestCmd := exec.Command("./scripts/generate-manifests",
-			"-d", "repos/diego-release",
-			"-c", "repos/cf-release",
+			"-d", config.V0DiegoReleasePath,
+			"-c", config.V0CfReleasePath,
 			"-l",
 		)
 		sess, err = Start(generateManifestCmd, GinkgoWriter, GinkgoWriter)
