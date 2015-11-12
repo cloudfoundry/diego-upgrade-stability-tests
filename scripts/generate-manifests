@@ -19,26 +19,30 @@ function usage() {
 function generate_component_manifest() {
   component=$1
 
-  ./scripts/generate-deployment-manifest \
-    ${TMP_DIR}/director.yml \
-    manifest-generation/bosh-lite-stubs/property-overrides.yml \
-    $CURRENT_DIR/${component}/instance-count-overrides.yml \
-    manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
-    $CURRENT_DIR/${component}/iaas-settings.yml \
-    manifest-generation/bosh-lite-stubs/additional-jobs.yml \
-    $OUTPUT_DIR \
-    > $TMP_DIR/${component}.yml
-
-  # ./scripts/generate-deployment-manifest \
-  #   ${TMP_DIR}/director.yml \
-  #   manifest-generation/bosh-lite-stubs/property-overrides.yml \
-  #   $CURRENT_DIR/${component}/instance-count-overrides.yml \
-  #   manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
-  #   $CURRENT_DIR/${component}/iaas-settings.yml \
-  #   manifest-generation/bosh-lite-stubs/additional-jobs.yml \
-  #   manifest-generation/bosh-lite-stubs/release-versions.yml \
-  #   $OUTPUT_DIR \
-  #   > $TMP_DIR/${component}.yml
+  # The manifest generation script has changed since the initial stable release
+  # so we need to adjust the arguments based on whether we're deploying a new
+  # release or v0 (legacy).
+  if [ -z ${LEGACY_STUBS} ]; then
+    ./scripts/generate-deployment-manifest \
+      manifest-generation/bosh-lite-stubs/property-overrides.yml \
+      $CURRENT_DIR/${component}/instance-count-overrides.yml \
+      manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
+      $CURRENT_DIR/${component}/iaas-settings.yml \
+      manifest-generation/bosh-lite-stubs/additional-jobs.yml \
+      manifest-generation/bosh-lite-stubs/release-versions.yml \
+      $OUTPUT_DIR \
+      > $TMP_DIR/${component}.yml
+  else
+    ./scripts/generate-deployment-manifest \
+      ${TMP_DIR}/director.yml \
+      manifest-generation/bosh-lite-stubs/property-overrides.yml \
+      $CURRENT_DIR/${component}/instance-count-overrides.yml \
+      manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
+      $CURRENT_DIR/${component}/iaas-settings.yml \
+      manifest-generation/bosh-lite-stubs/additional-jobs.yml \
+      $OUTPUT_DIR \
+      > $TMP_DIR/${component}.yml
+  fi
 
   spiff merge $TMP_DIR/${component}.yml $CURRENT_DIR/${component}/deployment-name.yml $LEGACY_STUBS > $OUTPUT_DIR/${component}.yml
 
@@ -86,7 +90,6 @@ fi
 mkdir -p $OUTPUT_DIR
 
 DIRECTOR_UUID=$(bosh status --uuid)
-
 echo "director_uuid: ${DIRECTOR_UUID}" > $TMP_DIR/director.yml
 
 pushd $CF_RELEASE_DIR > /dev/null
@@ -96,7 +99,6 @@ pushd $CF_RELEASE_DIR > /dev/null
 
   cp bosh-lite/deployments/cf.yml ${OUTPUT_DIR}/cf.yml
 popd > /dev/null
-
 
 pushd $DIEGO_RELEASE_DIR > /dev/null
   generate_component_manifest database
