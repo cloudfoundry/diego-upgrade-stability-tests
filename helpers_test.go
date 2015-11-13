@@ -33,7 +33,7 @@ func guidForAppName(appName string) string {
 }
 
 func smokeTestDiego() {
-	boshCmd("manifests/diego-smoke-tests", "run errand diego_smoke_tests", "Errand `diego_smoke_tests' completed successfully (exit code 0)")
+	boshCmd("manifests/diego-smoke-tests.yml", "run errand diego_smoke_tests", "Errand `diego_smoke_tests' completed successfully (exit code 0)")
 	// CFAPI := "https://api.bosh-lite.com"
 	// CFUser := "admin"
 	// CFPassword := "admin"
