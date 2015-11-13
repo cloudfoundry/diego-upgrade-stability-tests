@@ -105,4 +105,18 @@ pushd $DIEGO_RELEASE_DIR > /dev/null
   generate_component_manifest brain-and-pals
   generate_component_manifest cell1
   generate_component_manifest cell2
+
+  if [ -z ${LEGACY_STUBS} ]; then
+    spiff merge \
+      manifest-generation/config-from-cf.yml \
+      manifest-generation/config-from-cf-internal.yml \
+      ${OUTPUT_DIR}/cf.yml \
+      > ${TMP_DIR}/config-from-cf.yml
+
+    spiff merge \
+      manifest-generation/bosh-lite-stubs/diego-smoke-tests.yml \
+      ${CURRENT_DIR}/smoke-tests/iaas-settings.yml \
+      ${TMP_DIR}/config-from-cf.yml \
+      > ${OUTPUT_DIR}/diego-smoke-tests.yml
+  fi
 popd > /dev/null

@@ -69,6 +69,9 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
 
+		By("Deploying the Smoke Tests")
+		boshCmd("manifests/diego-smoke-tests.yml", "deploy", "Deployed `cf-warden-diego-smoke-tests'")
+
 		// Roll the Diego Database
 		// ************************************************************ //
 		// UPGRADE D1
