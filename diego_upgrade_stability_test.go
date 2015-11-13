@@ -85,14 +85,14 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// Rolling some cells, and turning off the other in order to
 		// test the new database, new cells, old brain and CF
 		// ************************************************************ //
-		//UPGRADE D3
+		// UPGRADE D3
 		By("Deploying the Cell 1 Release")
 		boshCmd("manifests/cell1.yml", "deploy", "Deployed `cf-warden-diego-cell1'")
 
 		// AFTER UPGRADING D3, PRESERVE OLD DEPLOYMENT AND STOP D4
 		By("Stopping the Cell 2 Deployment")
 		boshCmd("", "download manifest cf-warden-diego-cell2 legacy-cell-2.yml", "Deployment manifest saved to `legacy-cell-2.yml'")
-		boshCmd("legacy-cell-2.yml", "stop cell_z2 --force", "cell_z2/0 has been stopped")
+		boshCmd("legacy-cell-2.yml", "stop cell_z2", "cell_z2/0 has been stopped")
 
 		By("Running Smoke Tests #2")
 		smokeTestDiego()
