@@ -21,6 +21,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		boshCmd("", "delete deployment cf-warden-diego-brain-and-pals", "")
 		boshCmd("", "delete deployment cf-warden-diego-cell1", "")
 		boshCmd("", "delete deployment cf-warden-diego-cell2", "")
+		boshCmd("", "delete deployment cf-warden-diego-smoke-tests", "")
 
 		By("Ensuring the V0 is not currently deployed")
 		deploymentsCmd := bosh("deployments")
