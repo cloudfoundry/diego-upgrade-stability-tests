@@ -21,7 +21,6 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		boshCmd("", "delete deployment cf-warden-diego-brain-and-pals", "")
 		boshCmd("", "delete deployment cf-warden-diego-cell1", "")
 		boshCmd("", "delete deployment cf-warden-diego-cell2", "")
-		boshCmd("", "delete deployment cf-warden-diego-smoke-tests", "")
 
 		By("Ensuring the V0 is not currently deployed")
 		deploymentsCmd := bosh("deployments")
@@ -69,9 +68,6 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		sess, err := Start(generateManifestCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
-
-		By("Deploying Smoke Tests")
-		boshCmd("manifests/diego-smoke-tests.yml", "deploy", "Deployed `cf-warden-diego-smoke-tests'")
 
 		// Roll the Diego Database
 		// ************************************************************ //
