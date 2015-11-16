@@ -1,5 +1,11 @@
 ---
 jobs:
+- name: hm9000_z1
+  instances: 0
+  networks: null
+- name: hm9000_z2
+  instances: 0
+  networks: null
 - name: runner_z1
   instances: 0
   networks: null
