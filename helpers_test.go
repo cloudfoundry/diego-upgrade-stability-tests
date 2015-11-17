@@ -1,6 +1,8 @@
 package upgrade_test
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +14,15 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 )
+
+const (
+	CF_API            = "https://api.bosh-lite.com"
+	CF_USER           = "admin"
+	CF_PASSWORD       = "admin"
+	APP_ROUTE_PATTERN = "http://%s.bosh-lite.com/"
+)
+
+var testApp *cfApp
 
 func boshCmd(manifest, action, completeMsg string) {
 	args := []string{"-n"}
@@ -35,36 +46,78 @@ func guidForAppName(appName string) string {
 	return appGuid
 }
 
-func smokeTestDiego() {
-	CFAPI := "https://api.bosh-lite.com"
-	CFUser := "admin"
-	CFPassword := "admin"
+type cfApp struct {
+	appName, appRoute, orgName, spaceName string
+}
+
+func newCfApp() *cfApp {
 	appName := generator.RandomName()
-	appsDomain := "bosh-lite.com"
-	appRoute := "http://" + appName + "." + appsDomain + "/"
-	orgName := generator.RandomName()
-	spaceName := "smoke"
+	return &cfApp{
+		appName:   appName,
+		appRoute:  fmt.Sprintf(APP_ROUTE_PATTERN, appName),
+		orgName:   generator.RandomName(),
+		spaceName: generator.RandomName(),
+	}
+}
 
-	Eventually(cf.Cf("login", "-a", CFAPI, "-u", CFUser, "-p", CFPassword, "--skip-ssl-validation")).Should(gexec.Exit(0))
-
-	Eventually(cf.Cf("create-org", orgName)).Should(gexec.Exit(0))
-	defer func() { Eventually(cf.Cf("delete-org", "-f", orgName)).Should(gexec.Exit(0)) }()
-	Eventually(cf.Cf("target", "-o", orgName)).Should(gexec.Exit(0))
-
-	Eventually(cf.Cf("create-space", spaceName)).Should(gexec.Exit(0))
-	Eventually(cf.Cf("target", "-s", spaceName)).Should(gexec.Exit(0))
-
-	Eventually(cf.Cf("push", appName, "-p", "dora", "-i", "2"), 5*time.Minute).Should(gexec.Exit(0))
-	defer func() { Eventually(cf.Cf("delete", "-r", "-f", appName)).Should(gexec.Exit(0)) }()
-	Eventually(cf.Cf("logs", appName, "--recent")).Should(gbytes.Say("[HEALTH/0]"))
-
-	curlAppRouteWithTimeout := func() string {
-		curlCmd := runner.Curl(appRoute)
-		runner.NewCmdRunner(curlCmd, 30*time.Second).Run()
-		Expect(string(curlCmd.Err.Contents())).To(HaveLen(0))
-		return string(curlCmd.Out.Contents())
+func (a *cfApp) push() {
+	setup(a.orgName, a.spaceName)
+	Eventually(cf.Cf("push", a.appName, "-p", "dora", "-i", "1"), 5*time.Minute).Should(gexec.Exit(0))
+	Eventually(cf.Cf("logs", a.appName, "--recent")).Should(gbytes.Say("[HEALTH/0]"))
+	curlAppMain := func() string {
+		return a.curl("")
 	}
 
-	Eventually(curlAppRouteWithTimeout).Should(ContainSubstring("Hi, I'm Dora!"))
+	Eventually(curlAppMain).Should(ContainSubstring("Hi, I'm Dora!"))
+}
+
+func (a *cfApp) curl(endpoint string) string {
+	curlCmd := runner.Curl(a.appRoute + endpoint)
+	runner.NewCmdRunner(curlCmd, 30*time.Second).Run()
+	Expect(string(curlCmd.Err.Contents())).To(HaveLen(0))
+	return string(curlCmd.Out.Contents())
+}
+
+func (a *cfApp) scale(numInstances int) {
+	Eventually(cf.Cf("scale", a.appName, "-i", strconv.Itoa(numInstances))).Should(gexec.Exit(0))
+	found := make(map[string]struct{})
+	for i := 0; i < numInstances*5; i++ {
+		id := a.curl("id")
+		found[id] = struct{}{}
+	}
+	Expect(found).To(HaveLen(numInstances))
+}
+
+func (a *cfApp) destroy() {
+	Eventually(cf.Cf("delete", "-r", "-f", a.appName)).Should(gexec.Exit(0))
+	teardownOrg(a.orgName)
+}
+
+func setup(org, space string) {
+	Eventually(cf.Cf("login", "-a", CF_API, "-u", CF_USER, "-p", CF_PASSWORD, "--skip-ssl-validation")).Should(gexec.Exit(0))
+	Eventually(cf.Cf("create-org", org)).Should(gexec.Exit(0))
+	Eventually(cf.Cf("target", "-o", org)).Should(gexec.Exit(0))
+	Eventually(cf.Cf("create-space", space)).Should(gexec.Exit(0))
+	Eventually(cf.Cf("target", "-s", space)).Should(gexec.Exit(0))
+}
+
+func teardownOrg(orgName string) {
+	Eventually(cf.Cf("delete-org", "-f", orgName)).Should(gexec.Exit(0))
+}
+
+func smokeTestDiego() {
+	smokeTestApp := newCfApp()
+	smokeTestApp.push()
+	defer smokeTestApp.destroy()
+
 	Eventually(cf.Cf("cf", "ssh", "dora", "-c", `"cat app/Gemfile"`)).Should(gexec.Exit(0))
+}
+
+func deployTestApp() {
+	testApp = newCfApp()
+	testApp.push()
+}
+
+func scaleTestApp(numInstances int) {
+	testApp.scale(numInstances)
 }

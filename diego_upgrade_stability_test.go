@@ -57,6 +57,9 @@ var _ = Describe("Upgrade Stability Tests", func() {
 
 		By("Deploying Cell 2")
 		boshCmd("manifests/cell2.yml", "deploy", "Deployed `cf-warden-diego-cell2'")
+
+		By("Deploying a Test App")
+		deployTestApp()
 	})
 
 	It("Upgrades from V0 to V1", func() {
@@ -77,6 +80,10 @@ var _ = Describe("Upgrade Stability Tests", func() {
 
 		By("Running Smoke Tests #1")
 		smokeTestDiego()
+
+		By("Scaling Test App")
+		scaleTestApp(2)
+		scaleTestApp(1)
 
 		// Rolling some cells, and turning off the other in order to
 		// test the new database, new cells, old brain and CF
