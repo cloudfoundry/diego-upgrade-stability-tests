@@ -25,7 +25,7 @@ cat > config.json <<EOF
   "bosh_admin_user": "admin",
   "bosh_admin_password": "admin",
   "v0_cf_release_path": "../v0-stable-cf-release",
-  "v0_diego_release_path": "../v0-stable-diego-release"
+  "v0_diego_release_path": "../v0-stable-diego-release",
   "v1_cf_release_path": "../v1-cf-release",
   "v1_diego_release_path": "../v1-diego-release"
 }
