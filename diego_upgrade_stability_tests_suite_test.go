@@ -2,7 +2,6 @@ package upgrade_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"os/exec"
 	"time"
@@ -32,7 +31,6 @@ type TestConfig struct {
 
 func bosh(args ...string) *exec.Cmd {
 	boshArgs := append([]string{"-t", config.BoshDirectorURL, "-u", config.BoshAdminUser, "-p", config.BoshAdminPassword}, args...)
-	fmt.Printf("Bosh args are [%v]\n", boshArgs)
 	return exec.Command("bosh", boshArgs...)
 }
 
@@ -57,7 +55,6 @@ var _ = BeforeSuite(func() {
 	err = decoder.Decode(config)
 	Expect(err).NotTo(HaveOccurred())
 
-	fmt.Printf("Director URL %s\n", config.BoshDirectorURL)
 	boshTargetCmd := bosh("target", config.BoshDirectorURL)
 	sess, err := gexec.Start(boshTargetCmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())

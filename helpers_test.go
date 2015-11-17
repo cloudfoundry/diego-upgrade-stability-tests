@@ -50,19 +50,19 @@ type cfApp struct {
 	appName, appRoute, orgName, spaceName string
 }
 
-func newCfApp() *cfApp {
-	appName := generator.RandomName()
+func newCfApp(appNamePrefix string) *cfApp {
+	appName := appNamePrefix + "-" + generator.RandomName()
 	return &cfApp{
 		appName:   appName,
 		appRoute:  fmt.Sprintf(APP_ROUTE_PATTERN, appName),
-		orgName:   generator.RandomName(),
-		spaceName: generator.RandomName(),
+		orgName:   "org-" + generator.RandomName(),
+		spaceName: "space-" + generator.RandomName(),
 	}
 }
 
 func (a *cfApp) push() {
 	setup(a.orgName, a.spaceName)
-	Eventually(cf.Cf("push", a.appName, "-p", "dora", "-i", "1"), 5*time.Minute).Should(gexec.Exit(0))
+	Eventually(cf.Cf("push", a.appName, "-p", "dora", "-i", "1", "-b", "ruby_buildpack"), 5*time.Minute).Should(gexec.Exit(0))
 	Eventually(cf.Cf("logs", a.appName, "--recent")).Should(gbytes.Say("[HEALTH/0]"))
 	curlAppMain := func() string {
 		return a.curl("")
@@ -79,13 +79,28 @@ func (a *cfApp) curl(endpoint string) string {
 }
 
 func (a *cfApp) scale(numInstances int) {
+	Eventually(cf.Cf("target", "-o", a.orgName, "-s", a.spaceName)).Should(gexec.Exit(0))
 	Eventually(cf.Cf("scale", a.appName, "-i", strconv.Itoa(numInstances))).Should(gexec.Exit(0))
 	found := make(map[string]struct{})
-	for i := 0; i < numInstances*5; i++ {
+	for i := 0; i < numInstances*10; i++ {
 		id := a.curl("id")
 		found[id] = struct{}{}
+		time.Sleep(1 * time.Second)
 	}
 	Expect(found).To(HaveLen(numInstances))
+}
+
+func (a *cfApp) verifySsh() {
+	envCmd := cf.Cf("ssh", a.appName, "-c", `"/usr/bin/env"`)
+	Expect(envCmd.Wait()).To(gexec.Exit(0))
+
+	output := string(envCmd.Buffer().Contents())
+
+	Expect(string(output)).To(MatchRegexp(fmt.Sprintf(`VCAP_APPLICATION=.*"application_name":"%s"`, a.appName)))
+	Expect(string(output)).To(MatchRegexp("INSTANCE_INDEX=0"))
+
+	Eventually(cf.Cf("logs", a.appName, "--recent")).Should(gbytes.Say("Successful remote access"))
+	Eventually(cf.Cf("events", a.appName)).Should(gbytes.Say("audit.app.ssh-authorized"))
 }
 
 func (a *cfApp) destroy() {
@@ -106,16 +121,19 @@ func teardownOrg(orgName string) {
 }
 
 func smokeTestDiego() {
-	smokeTestApp := newCfApp()
+	smokeTestApp := newCfApp("smoke-test")
 	smokeTestApp.push()
 	defer smokeTestApp.destroy()
-
-	Eventually(cf.Cf("cf", "ssh", "dora", "-c", `"cat app/Gemfile"`)).Should(gexec.Exit(0))
+	smokeTestApp.verifySsh()
 }
 
 func deployTestApp() {
-	testApp = newCfApp()
+	testApp = newCfApp("test-app")
 	testApp.push()
+}
+
+func teardownTestOrg() {
+	teardownOrg(testApp.orgName)
 }
 
 func scaleTestApp(numInstances int) {
