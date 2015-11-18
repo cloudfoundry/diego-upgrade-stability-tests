@@ -14,6 +14,9 @@ bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-l
 
 ### Checkout the correct version of legacy releases
 
+The V0 manifest generation depends on having cf-release and diego-release cloned to an additional directory.
+The desired versions of each release should be checked out.
+
 ```
 cd ~/workspace/cf-release-v0
 git checkout v220

@@ -23,6 +23,7 @@ const (
 )
 
 var testApp *cfApp
+var togglechan chan (bool)
 
 func boshCmd(manifest, action, completeMsg string) {
 	args := []string{"-n"}
@@ -130,6 +131,34 @@ func smokeTestDiego() {
 func deployTestApp() {
 	testApp = newCfApp("test-app")
 	testApp.push()
+}
+
+func startPollTestApp() {
+	togglechan = make(chan bool)
+	go performPollTestApp()
+}
+
+func signalPollTestApp() {
+	togglechan <- true
+}
+
+func performPollTestApp() {
+	doCurl := true
+	for {
+		select {
+		default:
+			if doCurl {
+				_ = testApp.curl("id")
+			}
+			time.Sleep(2000 * time.Millisecond)
+		case <-togglechan:
+			if doCurl {
+				doCurl = false
+			} else {
+				doCurl = true
+			}
+		}
+	}
 }
 
 func teardownTestOrg() {

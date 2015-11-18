@@ -60,6 +60,9 @@ var _ = Describe("Upgrade Stability Tests", func() {
 
 		By("Deploying a Test App")
 		deployTestApp()
+
+		By("Continuously Polling the Test Application")
+		startPollTestApp()
 	})
 
 	AfterEach(func() {
@@ -100,7 +103,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// AFTER UPGRADING D3, PRESERVE OLD DEPLOYMENT AND STOP D4
 		// Deleting the deployment because #108279564
 		By("Stopping Cell 2")
-		boshCmd("", "download manifest cf-warden-diego-cell2 manifests/legacy-cell-2.yml", "Deployment manifest saved to `legacy-cell-2.yml'")
+		boshCmd("", "download manifest cf-warden-diego-cell2 manifests/legacy-cell-2.yml", `Deployment manifest saved to .manifests\/legacy-cell-2.yml'`)
 		boshCmd("manifests/legacy-cell-2.yml", "stop cell_z2", `cell_z2\/\* stopped, VM\(s\) still running`)
 		boshCmd("manifests/legacy-cell-2.yml", "delete deployment cf-warden-diego-cell2", "Deleted deployment `cf-warden-diego-cell2'")
 
@@ -139,7 +142,9 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// ************************************************************ //
 		// UPGRADE CF
 		By("Upgrading CF")
+		signalPollTestApp()
 		boshCmd("manifests/cf.yml", "deploy", "Deployed `cf-warden'")
+		signalPollTestApp()
 
 		By("Running Smoke Tests #4")
 		smokeTestDiego()
