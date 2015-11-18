@@ -54,7 +54,7 @@ scripts_path=$(absolute_path `dirname $0`)
 
 CURRENT_DIR=$(absolute_path $scripts_path/..)
 
-while getopts "d:c:l" opt; do
+while getopts "d:c:o:l" opt; do
   case $opt in
     d)
       DIEGO_RELEASE_DIR=$OPTARG
@@ -62,13 +62,13 @@ while getopts "d:c:l" opt; do
     c)
       CF_RELEASE_DIR=$OPTARG
       ;;
-    l)
-      echo 'Using misc-stubs/legacy-releases.yml for legacy versioned releases'
-      LEGACY_STUBS=$CURRENT_DIR/misc-stubs/legacy-releases.yml
-      ;;
     o)
       OVERRIDE_DOMAIN=$OPTARG
       echo 'Overriding  with ${OVERRIDE_DOMAIN}'
+      ;;
+    l)
+      echo 'Using misc-stubs/legacy-releases.yml for legacy versioned releases'
+      LEGACY_STUBS=$CURRENT_DIR/misc-stubs/legacy-releases.yml
       ;;
     \?)
       echo no dawg >&2
@@ -126,8 +126,8 @@ pushd $DIEGO_RELEASE_DIR > /dev/null
   fi
 popd > /dev/null
 
-if [ -z ${OVERRIDE_DOMAIN} ]; then
+if [ ! -z ${OVERRIDE_DOMAIN} ]; then
   pushd manifests > /dev/null
-    grep -rl bosh-lite.com . | xargs sed -i "" 's/bosh-lite\.com/foo.bar.com/g'
+    grep -rl bosh-lite.com . | xargs sed -i "" "s/bosh-lite\.com/${OVERRIDE_DOMAIN}/g"
   popd > /dev/null
 fi
