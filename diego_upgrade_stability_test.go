@@ -101,7 +101,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// Deleting the deployment because #108279564
 		By("Stopping Cell 2")
 		boshCmd("", "download manifest cf-warden-diego-cell2 legacy-cell-2.yml", "Deployment manifest saved to `legacy-cell-2.yml'")
-		boshCmd("legacy-cell-2.yml", "stop cell_z2", "cell_z2/* stopped, VM(s) still running")
+		boshCmd("legacy-cell-2.yml", "stop cell_z2", `cell_z2\/\* stopped, VM\(s\) still running`)
 		boshCmd("legacy-cell-2.yml", "delete deployment cf-warden-diego-cell2", "Deleted deployment `cf-warden-diego-cell2'")
 
 		By("Running Smoke Tests #2")
@@ -125,7 +125,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// AND STOP D3
 		// Deleting the deployment because #108279564
 		By("Stopping Cell 1")
-		boshCmd("manifests/cell1.yml", "stop cell_z1", "cell_z1/0 has been stopped")
+		boshCmd("manifests/cell1.yml", "stop cell_z1", `cell_z1\/\* stopped, VM\(s\) still running`)
 		boshCmd("manifests/cell1.yml", "delete deployment cf-warden-diego-cell1", "Deleted deployment `cf-warden-diego-cell1'")
 
 		By("Running Smoke Tests #3")
