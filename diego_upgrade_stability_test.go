@@ -38,6 +38,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 			"-d", config.V0DiegoReleasePath,
 			"-c", config.V0CfReleasePath,
 			"-l",
+			"-o", config.OverrideDomain,
 		)
 		sess, err = Start(generateManifestCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
@@ -75,6 +76,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		generateManifestCmd := exec.Command("./scripts/generate-manifests",
 			"-d", config.V1DiegoReleasePath,
 			"-c", config.V1CfReleasePath,
+			"-o", config.OverrideDomain,
 		)
 		sess, err := Start(generateManifestCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
