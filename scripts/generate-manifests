@@ -12,7 +12,8 @@ function usage() {
 
   -d diego release directory location
   -c cf release directory location
-  -l legacy release versions"
+  -l legacy release versions
+  -o override  domain"
   exit 1
 }
 
@@ -64,6 +65,10 @@ while getopts "d:c:l" opt; do
     l)
       echo 'Using misc-stubs/legacy-releases.yml for legacy versioned releases'
       LEGACY_STUBS=$CURRENT_DIR/misc-stubs/legacy-releases.yml
+      ;;
+    o)
+      OVERRIDE_DOMAIN=$OPTARG
+      echo 'Overriding  with ${OVERRIDE_DOMAIN}'
       ;;
     \?)
       echo no dawg >&2
@@ -120,3 +125,9 @@ pushd $DIEGO_RELEASE_DIR > /dev/null
       > ${OUTPUT_DIR}/diego-smoke-tests.yml
   fi
 popd > /dev/null
+
+if [ -z ${OVERRIDE_DOMAIN} ]; then
+  pushd manifests > /dev/null
+    grep -rl bosh-lite.com . | xargs sed -i "" 's/bosh-lite\.com/foo.bar.com/g'
+  popd > /dev/null
+fi
