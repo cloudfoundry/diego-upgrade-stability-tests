@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -17,7 +16,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
-	"github.com/tedsuo/ifrit"
 )
 
 const (
@@ -156,36 +154,25 @@ func deployTestApp() {
 	testApp.push()
 }
 
-func performPollTestApp() ifrit.Runner {
-	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+func startPollingTestApp(stop chan struct{}) {
+	go func() {
 		defer GinkgoRecover()
 
-		curlComplete := make(chan error, 1)
 		curlTimer := time.NewTimer(0)
-
-		close(ready)
-
 		for {
 			select {
 			case <-curlTimer.C:
-				go func() {
-					_, err := testApp.curl("id")
-					if err != nil {
-					}
-					curlComplete <- err
-				}()
-
-			case err := <-curlComplete:
+				_, err := testApp.curl("id?polling=true")
 				if err != nil {
 					Fail("Polling Test App Failed")
 				}
 				curlTimer.Reset(2 * time.Second)
 
-			case <-signals:
-				return nil
+			case <-stop:
+				return
 			}
 		}
-	})
+	}()
 }
 
 func teardownTestOrg() {
