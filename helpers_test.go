@@ -1,18 +1,23 @@
 package upgrade_test
 
 import (
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/generator"
-	"github.com/cloudfoundry-incubator/cf-test-helpers/runner"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/tedsuo/ifrit"
 )
 
 const (
@@ -23,7 +28,6 @@ const (
 )
 
 var testApp *cfApp
-var togglechan chan (bool)
 
 func boshCmd(manifest, action, completeMsg string) {
 	args := []string{"-n"}
@@ -66,17 +70,35 @@ func (a *cfApp) push() {
 	Eventually(cf.Cf("push", a.appName, "-p", "dora", "-i", "1", "-b", "ruby_buildpack"), 5*time.Minute).Should(gexec.Exit(0))
 	Eventually(cf.Cf("logs", a.appName, "--recent")).Should(gbytes.Say("[HEALTH/0]"))
 	curlAppMain := func() string {
-		return a.curl("")
+		response, err := a.curl("")
+		if err != nil {
+			return ""
+		}
+		return response
 	}
 
 	Eventually(curlAppMain).Should(ContainSubstring("Hi, I'm Dora!"))
 }
 
-func (a *cfApp) curl(endpoint string) string {
-	curlCmd := runner.Curl(a.appRoute + endpoint)
-	runner.NewCmdRunner(curlCmd, 30*time.Second).Run()
-	Expect(string(curlCmd.Err.Contents())).To(HaveLen(0))
-	return string(curlCmd.Out.Contents())
+func (a *cfApp) curl(endpoint string) (string, error) {
+	log.Printf("Curling endpoint [%s]", a.appRoute+endpoint)
+	resp, err := http.Get(a.appRoute + endpoint)
+	if err != nil {
+		return "", err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	log.Printf("Response [%d][%s]", resp.StatusCode, body)
+	if resp.StatusCode != 200 {
+		return "", errors.New("Status Code not 200")
+	}
+	return string(body), nil
 }
 
 func (a *cfApp) scale(numInstances int) {
@@ -84,7 +106,8 @@ func (a *cfApp) scale(numInstances int) {
 	Eventually(cf.Cf("scale", a.appName, "-i", strconv.Itoa(numInstances))).Should(gexec.Exit(0))
 	found := make(map[string]struct{})
 	for i := 0; i < numInstances*10; i++ {
-		id := a.curl("id")
+		id, err := a.curl("id")
+		Expect(err).NotTo(HaveOccurred())
 		found[id] = struct{}{}
 		time.Sleep(1 * time.Second)
 	}
@@ -133,32 +156,36 @@ func deployTestApp() {
 	testApp.push()
 }
 
-func startPollTestApp() {
-	togglechan = make(chan bool)
-	go performPollTestApp()
-}
+func performPollTestApp() ifrit.Runner {
+	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+		defer GinkgoRecover()
 
-func signalPollTestApp() {
-	togglechan <- true
-}
+		curlComplete := make(chan error, 1)
+		curlTimer := time.NewTimer(0)
 
-func performPollTestApp() {
-	doCurl := true
-	for {
-		select {
-		default:
-			if doCurl {
-				_ = testApp.curl("id")
-			}
-			time.Sleep(2000 * time.Millisecond)
-		case <-togglechan:
-			if doCurl {
-				doCurl = false
-			} else {
-				doCurl = true
+		close(ready)
+
+		for {
+			select {
+			case <-curlTimer.C:
+				go func() {
+					_, err := testApp.curl("id")
+					if err != nil {
+					}
+					curlComplete <- err
+				}()
+
+			case err := <-curlComplete:
+				if err != nil {
+					Fail("Polling Test App Failed")
+				}
+				curlTimer.Reset(2 * time.Second)
+
+			case <-signals:
+				return nil
 			}
 		}
-	}
+	})
 }
 
 func teardownTestOrg() {
