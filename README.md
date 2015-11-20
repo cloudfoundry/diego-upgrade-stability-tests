@@ -50,13 +50,15 @@ Replace credentials and URLs as appropriate for your environment.
 ```bash
 cat > config.json <<EOF
 {
+  "cf_api_url": "api.bosh-lite.com",
   "bosh_director_url": "192.168.50.4",
   "bosh_admin_user": "admin",
   "bosh_admin_password": "admin",
-  "v0_cf_release_path": "../cf-release-v0",
-  "v0_diego_release_path": "../diego-release-v0",
-  "v1_cf_release_path": "../cf-release",
-  "v1_diego_release_path": "../diego-release"
+  "base_directory": "$HOME/workspace/",
+  "v0_cf_release_path": "cf-release-v0",
+  "v0_diego_release_path": "diego-release-v0",
+  "v1_cf_release_path": "cf-release",
+  "v1_diego_release_path": "diego-release"
 }
 EOF
 export CONFIG=$PWD/config.json

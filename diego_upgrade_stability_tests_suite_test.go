@@ -19,15 +19,17 @@ const COMMAND_TIMEOUT = 30 * time.Second
 var config *TestConfig
 
 type TestConfig struct {
+	CFApiURL          string `json:"cf_api_url"`
 	BoshDirectorURL   string `json:"bosh_director_url"`
 	BoshAdminUser     string `json:"bosh_admin_user"`
 	BoshAdminPassword string `json:"bosh_admin_password"`
 
-	V0DiegoReleasePath string `json:"v0_diego_release_path"`
-	V0CfReleasePath    string `json:"v0_cf_release_path"`
-	V1DiegoReleasePath string `json:"v1_diego_release_path"`
-	V1CfReleasePath    string `json:"v1_cf_release_path"`
-	OverrideDomain     string `json:"override_domain"`
+	BaseReleaseDirectory string `json:"base_directory"`
+	V0DiegoReleasePath   string `json:"v0_diego_release_path"`
+	V0CfReleasePath      string `json:"v0_cf_release_path"`
+	V1DiegoReleasePath   string `json:"v1_diego_release_path"`
+	V1CfReleasePath      string `json:"v1_cf_release_path"`
+	OverrideDomain       string `json:"override_domain"`
 }
 
 func bosh(args ...string) *exec.Cmd {

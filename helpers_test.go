@@ -19,7 +19,6 @@ import (
 )
 
 const (
-	CF_API            = "https://api.bosh-lite.com"
 	CF_USER           = "admin"
 	CF_PASSWORD       = "admin"
 	APP_ROUTE_PATTERN = "http://%s.bosh-lite.com/"
@@ -131,7 +130,7 @@ func (a *cfApp) destroy() {
 }
 
 func setup(org, space string) {
-	Eventually(cf.Cf("login", "-a", CF_API, "-u", CF_USER, "-p", CF_PASSWORD, "--skip-ssl-validation")).Should(gexec.Exit(0))
+	Eventually(cf.Cf("login", "-a", config.CFApiURL, "-u", CF_USER, "-p", CF_PASSWORD, "--skip-ssl-validation")).Should(gexec.Exit(0))
 	Eventually(cf.Cf("create-org", org)).Should(gexec.Exit(0))
 	Eventually(cf.Cf("target", "-o", org)).Should(gexec.Exit(0))
 	Eventually(cf.Cf("create-space", space)).Should(gexec.Exit(0))

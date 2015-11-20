@@ -2,6 +2,7 @@ package upgrade_test
 
 import (
 	"os/exec"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -36,8 +37,8 @@ var _ = Describe("Upgrade Stability Tests", func() {
 
 		By("Generating the V0 deployment manifests for 5 piece wise deployments")
 		generateManifestCmd := exec.Command("./scripts/generate-manifests",
-			"-d", config.V0DiegoReleasePath,
-			"-c", config.V0CfReleasePath,
+			"-d", filepath.Join(config.BaseReleaseDirectory, config.V0DiegoReleasePath),
+			"-c", filepath.Join(config.BaseReleaseDirectory, config.V0CfReleasePath),
 			"-l",
 			"-o", config.OverrideDomain,
 		)
@@ -78,8 +79,8 @@ var _ = Describe("Upgrade Stability Tests", func() {
 	It("Upgrades from V0 to V1", func() {
 		By("Generating the V1 deployment manifests for 5 piece wise deployments")
 		generateManifestCmd := exec.Command("./scripts/generate-manifests",
-			"-d", config.V1DiegoReleasePath,
-			"-c", config.V1CfReleasePath,
+			"-d", filepath.Join(config.BaseReleaseDirectory, config.V1DiegoReleasePath),
+			"-c", filepath.Join(config.BaseReleaseDirectory, config.V1CfReleasePath),
 			"-o", config.OverrideDomain,
 		)
 		sess, err := Start(generateManifestCmd, GinkgoWriter, GinkgoWriter)
