@@ -19,7 +19,6 @@ const COMMAND_TIMEOUT = 30 * time.Second
 var config *TestConfig
 
 type TestConfig struct {
-	CFApiURL          string `json:"cf_api_url"`
 	BoshDirectorURL   string `json:"bosh_director_url"`
 	BoshAdminUser     string `json:"bosh_admin_user"`
 	BoshAdminPassword string `json:"bosh_admin_password"`

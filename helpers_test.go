@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -21,10 +22,12 @@ import (
 const (
 	CF_USER           = "admin"
 	CF_PASSWORD       = "admin"
-	APP_ROUTE_PATTERN = "http://%s.bosh-lite.com/"
+	APP_ROUTE_PATTERN = "http://%s.%s"
 )
 
-var testApp *cfApp
+var (
+	testApp *cfApp
+)
 
 func boshCmd(manifest, action, completeMsg string) {
 	args := []string{"-n"}
@@ -49,14 +52,20 @@ func guidForAppName(appName string) string {
 }
 
 type cfApp struct {
-	appName, appRoute, orgName, spaceName string
+	appName, orgName, spaceName string
+	appRoute                    url.URL
 }
 
 func newCfApp(appNamePrefix string) *cfApp {
 	appName := appNamePrefix + "-" + generator.RandomName()
+	rawUrl := fmt.Sprintf(APP_ROUTE_PATTERN, appName, config.OverrideDomain)
+	appUrl, err := url.Parse(rawUrl)
+	if err != nil {
+		panic(err)
+	}
 	return &cfApp{
 		appName:   appName,
-		appRoute:  fmt.Sprintf(APP_ROUTE_PATTERN, appName),
+		appRoute:  *appUrl,
 		orgName:   "org-" + generator.RandomName(),
 		spaceName: "space-" + generator.RandomName(),
 	}
@@ -78,8 +87,10 @@ func (a *cfApp) push() {
 }
 
 func (a *cfApp) curl(endpoint string) (string, error) {
-	log.Printf("Curling endpoint [%s]", a.appRoute+endpoint)
-	resp, err := http.Get(a.appRoute + endpoint)
+	endpointUrl := a.appRoute
+	endpointUrl.Path = endpoint
+	log.Printf("Curling endpoint [%s]", endpointUrl.String())
+	resp, err := http.Get(endpointUrl.String())
 	if err != nil {
 		return "", err
 	}
@@ -130,7 +141,7 @@ func (a *cfApp) destroy() {
 }
 
 func setup(org, space string) {
-	Eventually(cf.Cf("login", "-a", config.CFApiURL, "-u", CF_USER, "-p", CF_PASSWORD, "--skip-ssl-validation")).Should(gexec.Exit(0))
+	Eventually(cf.Cf("login", "-a", "api."+config.OverrideDomain, "-u", CF_USER, "-p", CF_PASSWORD, "--skip-ssl-validation")).Should(gexec.Exit(0))
 	Eventually(cf.Cf("create-org", org)).Should(gexec.Exit(0))
 	Eventually(cf.Cf("target", "-o", org)).Should(gexec.Exit(0))
 	Eventually(cf.Cf("create-space", space)).Should(gexec.Exit(0))
