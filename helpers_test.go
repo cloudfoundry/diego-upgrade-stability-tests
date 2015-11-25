@@ -123,6 +123,12 @@ func (a *cfApp) scale(numInstances int) {
 }
 
 func (a *cfApp) verifySsh() {
+	enable := cf.Cf("enable-ssh", a.appName)
+	Expect(enable.Wait()).To(gexec.Exit())
+
+	enable = cf.Cf("ssh-enabled", a.appName)
+	Expect(enable.Wait()).To(gexec.Exit(0))
+
 	envCmd := cf.Cf("ssh", a.appName, "-c", `"/usr/bin/env"`)
 	Expect(envCmd.Wait()).To(gexec.Exit(0))
 
