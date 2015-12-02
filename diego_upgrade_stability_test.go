@@ -137,7 +137,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// AND STOP D3
 		// Deleting the deployment because #108279564
 		By("Stopping Cell 1")
-		boshCmd("manifests/cell1.yml", "stop cell_z1", `cell_z1\/\* stopped, VM\(s\) still running`)
+		boshCmd("manifests/cell1.yml", "stop cell_z1", `cell_z1\/.* stopped, VM\(s\) still running`)
 		boshCmd("manifests/cell1.yml", "delete deployment cf-warden-diego-cell1", "Deleted deployment `cf-warden-diego-cell1'")
 
 		By("Running Smoke Tests #3")
