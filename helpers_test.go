@@ -1,12 +1,12 @@
 package upgrade_test
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +17,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/tedsuo/ifrit"
 )
 
 const (
@@ -104,7 +105,7 @@ func (a *cfApp) curl(endpoint string) (string, error) {
 
 	log.Printf("Response [%d][%s]", resp.StatusCode, body)
 	if resp.StatusCode != 200 {
-		return "", errors.New("Status Code not 200")
+		return "", fmt.Errorf("Status Code was %d", resp.StatusCode)
 	}
 	return string(body), nil
 }
@@ -112,23 +113,22 @@ func (a *cfApp) curl(endpoint string) (string, error) {
 func (a *cfApp) scale(numInstances int) {
 	Eventually(cf.Cf("target", "-o", a.orgName, "-s", a.spaceName)).Should(gexec.Exit(0))
 	Eventually(cf.Cf("scale", a.appName, "-i", strconv.Itoa(numInstances))).Should(gexec.Exit(0))
-	found := make(map[string]struct{})
-	for i := 0; i < numInstances*10; i++ {
-		id, err := a.curl("id")
-		Expect(err).NotTo(HaveOccurred())
-		found[id] = struct{}{}
-		time.Sleep(1 * time.Second)
-	}
-	Expect(found).To(HaveLen(numInstances))
+	Eventually(func() int {
+		found := make(map[string]struct{})
+		for i := 0; i < numInstances*2; i++ {
+			id, err := a.curl("id")
+			if err != nil {
+				log.Printf("Failed Curling While Scaling: %s\n", err.Error())
+				return -1
+			}
+			found[id] = struct{}{}
+			time.Sleep(1 * time.Second)
+		}
+		return len(found)
+	}).Should(Equal(numInstances))
 }
 
 func (a *cfApp) verifySsh() {
-	enable := cf.Cf("enable-ssh", a.appName)
-	Expect(enable.Wait()).To(gexec.Exit())
-
-	enable = cf.Cf("ssh-enabled", a.appName)
-	Expect(enable.Wait()).To(gexec.Exit(0))
-
 	envCmd := cf.Cf("ssh", a.appName, "-c", `"/usr/bin/env"`)
 	Expect(envCmd.Wait()).To(gexec.Exit(0))
 
@@ -170,25 +170,24 @@ func deployTestApp() {
 	testApp.push()
 }
 
-func startPollingTestApp(stop chan struct{}) {
-	go func() {
-		defer GinkgoRecover()
+var pollTestApp ifrit.RunFunc = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+	defer GinkgoRecover()
 
-		curlTimer := time.NewTimer(0)
-		for {
-			select {
-			case <-curlTimer.C:
-				_, err := testApp.curl("id?polling=true")
-				if err != nil {
-					Fail("Polling Test App Failed")
-				}
-				curlTimer.Reset(2 * time.Second)
+	close(ready)
 
-			case <-stop:
-				return
-			}
+	curlTimer := time.NewTimer(0)
+	for {
+		select {
+		case <-curlTimer.C:
+			_, err := testApp.curl("id")
+			Expect(err).NotTo(HaveOccurred(), "continuous polling failed")
+			curlTimer.Reset(2 * time.Second)
+
+		case <-signals:
+			By("exiting continuous test poller")
+			return nil
 		}
-	}()
+	}
 }
 
 func teardownTestOrg() {

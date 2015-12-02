@@ -8,12 +8,14 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
+	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/ginkgomon"
 )
 
 var _ = Describe("Upgrade Stability Tests", func() {
 	var sess *Session
 	var err error
-	var stopPollingTestAppChan chan struct{}
+	var pollerProcess ifrit.Process
 
 	BeforeEach(func() {
 		By("Deploying V0")
@@ -65,12 +67,12 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		deployTestApp()
 
 		By("Continuously Polling the Test Application")
-		stopPollingTestAppChan = make(chan struct{}, 1)
-		startPollingTestApp(stopPollingTestAppChan)
+		pollerProcess = ginkgomon.Invoke(pollTestApp)
 	})
 
 	AfterEach(func() {
-		close(stopPollingTestAppChan)
+		By("Test Complete, AfterEach Beginning")
+		ginkgomon.Kill(pollerProcess)
 
 		By("Deleting the Test App organization")
 		teardownTestOrg()
@@ -149,9 +151,9 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// ************************************************************ //
 		// UPGRADE CF
 		By("Upgrading CF")
-		stopPollingTestAppChan <- struct{}{}
+		ginkgomon.Kill(pollerProcess)
 		boshCmd("manifests/cf.yml", "deploy", "Deployed `cf-warden'")
-		startPollingTestApp(stopPollingTestAppChan)
+		pollerProcess = ginkgomon.Invoke(pollTestApp)
 
 		By("Running Smoke Tests #4")
 		smokeTestDiego()
