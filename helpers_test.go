@@ -128,19 +128,6 @@ func (a *cfApp) scale(numInstances int) {
 	}).Should(Equal(numInstances))
 }
 
-func (a *cfApp) verifySsh() {
-	envCmd := cf.Cf("ssh", a.appName, "-c", `"/usr/bin/env"`)
-	Expect(envCmd.Wait()).To(gexec.Exit(0))
-
-	output := string(envCmd.Buffer().Contents())
-
-	Expect(string(output)).To(MatchRegexp(fmt.Sprintf(`VCAP_APPLICATION=.*"application_name":"%s"`, a.appName)))
-	Expect(string(output)).To(MatchRegexp("INSTANCE_INDEX=0"))
-
-	Eventually(cf.Cf("logs", a.appName, "--recent")).Should(gbytes.Say("Successful remote access"))
-	Eventually(cf.Cf("events", a.appName)).Should(gbytes.Say("audit.app.ssh-authorized"))
-}
-
 func (a *cfApp) destroy() {
 	Eventually(cf.Cf("delete", "-r", "-f", a.appName)).Should(gexec.Exit(0))
 	teardownOrg(a.orgName)
@@ -158,11 +145,11 @@ func teardownOrg(orgName string) {
 	Eventually(cf.Cf("delete-org", "-f", orgName)).Should(gexec.Exit(0))
 }
 
+// Push by default makes sure that the app is reachable via a curl
 func smokeTestDiego() {
 	smokeTestApp := newCfApp("smoke-test")
-	smokeTestApp.push()
 	defer smokeTestApp.destroy()
-	smokeTestApp.verifySsh()
+	smokeTestApp.push()
 }
 
 func deployTestApp() {
