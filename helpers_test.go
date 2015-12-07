@@ -90,7 +90,6 @@ func (a *cfApp) push() {
 func (a *cfApp) curl(endpoint string) (string, error) {
 	endpointUrl := a.appRoute
 	endpointUrl.Path = endpoint
-	log.Printf("Curling endpoint [%s]", endpointUrl.String())
 	resp, err := http.Get(endpointUrl.String())
 	if err != nil {
 		return "", err
@@ -103,9 +102,8 @@ func (a *cfApp) curl(endpoint string) (string, error) {
 		return "", err
 	}
 
-	log.Printf("Response [%d][%s]", resp.StatusCode, body)
 	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("Status Code was %d", resp.StatusCode)
+		return "", fmt.Errorf("Endpoint: %s, Status Code: %d, Body: %s", endpointUrl.String(), resp.StatusCode, string(body))
 	}
 	return string(body), nil
 }
