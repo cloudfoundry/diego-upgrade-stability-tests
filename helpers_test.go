@@ -158,9 +158,18 @@ func teardownOrg(orgName string) {
 
 func smokeTestDiego() {
 	smokeTestApp := newCfApp("smoke-test")
+	// push new app
 	smokeTestApp.push()
+
+	// destroy after test finishes
 	defer smokeTestApp.destroy()
+
+	// verify ssh functionality
 	smokeTestApp.verifySsh()
+
+	// verify scaling
+	smokeTestApp.scale(2)
+	smokeTestApp.scale(1)
 }
 
 func deployTestApp() {
