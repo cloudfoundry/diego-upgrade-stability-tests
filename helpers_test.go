@@ -126,14 +126,14 @@ func (a *cfApp) scale(numInstances int) {
 	}).Should(Equal(numInstances))
 }
 
-func (a *cfApp) verifySsh() {
-	envCmd := cf.Cf("ssh", a.appName, "-c", `"/usr/bin/env"`)
+func (a *cfApp) verifySsh(instanceIndex int) {
+	envCmd := cf.Cf("ssh", a.appName, "-i", strconv.Itoa(instanceIndex), "-c", `"/usr/bin/env"`)
 	Expect(envCmd.Wait()).To(gexec.Exit(0))
 
 	output := string(envCmd.Buffer().Contents())
 
 	Expect(string(output)).To(MatchRegexp(fmt.Sprintf(`VCAP_APPLICATION=.*"application_name":"%s"`, a.appName)))
-	Expect(string(output)).To(MatchRegexp("INSTANCE_INDEX=0"))
+	Expect(string(output)).To(MatchRegexp(fmt.Sprintf("INSTANCE_INDEX=%d", instanceIndex)))
 
 	Eventually(cf.Cf("logs", a.appName, "--recent")).Should(gbytes.Say("Successful remote access"))
 	Eventually(cf.Cf("events", a.appName)).Should(gbytes.Say("audit.app.ssh-authorized"))
@@ -164,11 +164,14 @@ func smokeTestDiego() {
 	// destroy after test finishes
 	defer smokeTestApp.destroy()
 
-	// verify ssh functionality
-	smokeTestApp.verifySsh()
-
-	// verify scaling
+	// verify scaling up
 	smokeTestApp.scale(2)
+
+	// verify ssh functionality
+	smokeTestApp.verifySsh(0)
+	smokeTestApp.verifySsh(1)
+
+	// verify scaling down
 	smokeTestApp.scale(1)
 }
 
