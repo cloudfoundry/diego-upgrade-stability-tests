@@ -25,13 +25,12 @@ function generate_component_manifest() {
   # release or v0 (legacy).
   if [ -z ${LEGACY_STUBS} ]; then
     ./scripts/generate-deployment-manifest \
-      manifest-generation/bosh-lite-stubs/property-overrides.yml \
-      $CURRENT_DIR/${component}/instance-count-overrides.yml \
-      manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
-      $CURRENT_DIR/${component}/iaas-settings.yml \
-      manifest-generation/bosh-lite-stubs/additional-jobs.yml \
-      manifest-generation/bosh-lite-stubs/release-versions.yml \
-      $OUTPUT_DIR \
+      -c $OUTPUT_DIR/cf.yml \
+      -i $CURRENT_DIR/${component}/iaas-settings.yml \
+      -p manifest-generation/bosh-lite-stubs/property-overrides.yml \
+      -n $CURRENT_DIR/${component}/instance-count-overrides.yml \
+      -k manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
+      -v manifest-generation/bosh-lite-stubs/release-versions.yml \
       > $TMP_DIR/${component}.yml
   else
     ./scripts/generate-deployment-manifest \
