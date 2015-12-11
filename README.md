@@ -6,10 +6,15 @@ This test suite exercises the upgrade path from the stable CF/Diego configuratio
 
 ### Upload the necessary legacy releases to your bosh-lite
 
-```
+```bash
+# Legacy Releases
 bosh upload release https://bosh.io/d/github.com/cloudfoundry/cf-release?v=220
 bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/diego-release?v=0.1434.0
 bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release?v=0.307.0
+
+# Current Releases
+bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/etcd-release
+bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release
 ```
 
 ### Checkout the correct version of legacy releases
@@ -17,28 +22,31 @@ bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-l
 The V0 manifest generation depends on having cf-release and diego-release cloned to an additional directory.
 The desired versions of each release should be checked out.
 
-```
+```bash
 cd ~/workspace/cf-release-v0
 git checkout v220
+git submodule update --init --recursive src/loggregator # Need manifest generation templates for LAMB
 cd ~/workspace/diego-release-v0
 git checkout 0.1434.0
 ```
 
 ### Upload the necessary V-prime releases to your bosh-lite
 
-```
+```bash
 cd ~/workspace/cf-release
-git co runtime-passed
-bosh create release --force && bosh -n upload release
+git checkout runtime-passed
+./scripts/update
+bosh -n --parallel 10 create release --force && bosh upload release
 cd ~/workspace/diego-release
-git co develop
-bosh create release --force && bosh -n upload release
+git checkout develop
+./scripts/update
+bosh -n --parallel 10 create release --force && bosh upload release
 ```
 
 ### Upload the necessary stemcell to your bosh-lite
 
 ```
-bosh upload stemcell https://bosh.io/d/stemcells/bosh-warden-boshlite-ubuntu-trusty-go_agent?v=2776
+bosh upload stemcell https://bosh.io/d/stemcells/bosh-warden-boshlite-ubuntu-trusty-go_agent
 ```
 
 ### Run the test suite
