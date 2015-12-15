@@ -87,10 +87,8 @@ func (a *cfApp) push() {
 	Eventually(curlAppMain).Should(ContainSubstring("Hi, I'm Dora!"))
 }
 
-func (a *cfApp) curl(endpoint string) (string, error) {
-	endpointUrl := a.appRoute
-	endpointUrl.Path = endpoint
-	resp, err := http.Get(endpointUrl.String())
+func curl(url string) (string, error) {
+	resp, err := http.Get(url)
 	if err != nil {
 		return "", err
 	}
@@ -103,9 +101,15 @@ func (a *cfApp) curl(endpoint string) (string, error) {
 	}
 
 	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("Endpoint: %s, Status Code: %d, Body: %s", endpointUrl.String(), resp.StatusCode, string(body))
+		return "", fmt.Errorf("Endpoint: %s, Status Code: %d, Body: %s", url, resp.StatusCode, string(body))
 	}
 	return string(body), nil
+}
+
+func (a *cfApp) curl(endpoint string) (string, error) {
+	endpointUrl := a.appRoute
+	endpointUrl.Path = endpoint
+	return curl(endpointUrl.String())
 }
 
 func (a *cfApp) scale(numInstances int) {
@@ -145,6 +149,10 @@ func (a *cfApp) destroy() {
 }
 
 func setup(org, space string) {
+	Eventually(func() error {
+		_, err := curl("http://api." + config.OverrideDomain + "/v2/info")
+		return err
+	}).Should(Succeed(), "CC API wasn't reachable after a deploy")
 	Eventually(cf.Cf("login", "-a", "api."+config.OverrideDomain, "-u", CF_USER, "-p", CF_PASSWORD, "--skip-ssl-validation")).Should(gexec.Exit(0))
 	Eventually(cf.Cf("create-org", org)).Should(gexec.Exit(0))
 	Eventually(cf.Cf("target", "-o", org)).Should(gexec.Exit(0))
