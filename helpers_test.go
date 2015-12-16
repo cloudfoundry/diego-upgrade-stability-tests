@@ -149,11 +149,9 @@ func (a *cfApp) destroy() {
 }
 
 func setup(org, space string) {
-	Eventually(func() error {
-		_, err := curl("http://api." + config.OverrideDomain + "/v2/info")
-		return err
-	}).Should(Succeed(), "CC API wasn't reachable after a deploy")
-	Eventually(cf.Cf("login", "-a", "api."+config.OverrideDomain, "-u", CF_USER, "-p", CF_PASSWORD, "--skip-ssl-validation")).Should(gexec.Exit(0))
+	Eventually(func() int {
+		return cf.Cf("login", "-a", "api."+config.OverrideDomain, "-u", CF_USER, "-p", CF_PASSWORD, "--skip-ssl-validation").Wait().ExitCode()
+	}).Should(Equal(0))
 	Eventually(cf.Cf("create-org", org)).Should(gexec.Exit(0))
 	Eventually(cf.Cf("target", "-o", org)).Should(gexec.Exit(0))
 	Eventually(cf.Cf("create-space", space)).Should(gexec.Exit(0))
