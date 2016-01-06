@@ -29,6 +29,7 @@ type TestConfig struct {
 	V1DiegoReleasePath   string `json:"v1_diego_release_path"`
 	V1CfReleasePath      string `json:"v1_cf_release_path"`
 	OverrideDomain       string `json:"override_domain"`
+	MaxPollingErrors     int    `json:"max_polling_errors,omitempty"`
 }
 
 func bosh(args ...string) *exec.Cmd {
@@ -43,7 +44,8 @@ func TestUpgradeStableManifests(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	config = &TestConfig{
-		OverrideDomain: "bosh-lite.com",
+		OverrideDomain:   "bosh-lite.com",
+		MaxPollingErrors: 1,
 	}
 
 	SetDefaultEventuallyTimeout(time.Minute)

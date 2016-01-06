@@ -66,7 +66,8 @@ cat > config.json <<EOF
   "v0_cf_release_path": "cf-release-v0",
   "v0_diego_release_path": "diego-release-v0",
   "v1_cf_release_path": "cf-release",
-  "v1_diego_release_path": "diego-release"
+  "v1_diego_release_path": "diego-release",
+  "max_polling_errors": 1
 }
 EOF
 export CONFIG=$PWD/config.json
