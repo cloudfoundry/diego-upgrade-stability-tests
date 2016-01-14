@@ -161,6 +161,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		By("Upgrading CF")
 		ginkgomon.Kill(pollerProcess)
 		boshCmd("manifests/cf.yml", "deploy", "Deployed `cf-warden'")
+		testCfCurl()
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
 		By("Running Smoke Tests #4")

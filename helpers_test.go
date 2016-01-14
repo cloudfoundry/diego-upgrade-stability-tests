@@ -24,7 +24,16 @@ const (
 	CF_USER           = "admin"
 	CF_PASSWORD       = "admin"
 	APP_ROUTE_PATTERN = "http://%s.%s"
+	GOROUTER_TIMEOUT  = 20
 )
+
+func testCfCurl() {
+	curlInfo := func() *gexec.Session {
+		return cf.Cf("curl", "/v2/info")
+	}
+
+	Eventually(curlInfo, GOROUTER_TIMEOUT).Should(gexec.Exit(0))
+}
 
 func boshCmd(manifest, action, completeMsg string) {
 	args := []string{"-n"}
