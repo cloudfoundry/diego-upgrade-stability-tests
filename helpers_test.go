@@ -28,11 +28,7 @@ const (
 )
 
 func testCfCurl() {
-	curlInfo := func() *gexec.Session {
-		return cf.Cf("curl", "/v2/info")
-	}
-
-	Eventually(curlInfo, GOROUTER_TIMEOUT).Should(gexec.Exit(0))
+	Eventually(cf.Cf("curl", "/v2/info"), GOROUTER_TIMEOUT).Should(gexec.Exit(0))
 }
 
 func boshCmd(manifest, action, completeMsg string) {
