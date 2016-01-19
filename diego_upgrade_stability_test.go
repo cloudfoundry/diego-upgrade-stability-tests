@@ -51,6 +51,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 
 		By("Deploying CF")
 		boshCmd("manifests/cf.yml", "deploy", "Deployed `cf-warden'")
+		waitForCfToBeAvailable()
 
 		By("Deploying Database")
 		boshCmd("manifests/database.yml", "deploy", "Deployed `cf-warden-diego-database'")
@@ -161,7 +162,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		By("Upgrading CF")
 		ginkgomon.Kill(pollerProcess)
 		boshCmd("manifests/cf.yml", "deploy", "Deployed `cf-warden'")
-		testCfCurl()
+		waitForCfToBeAvailable()
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
 		By("Running Smoke Tests #4")

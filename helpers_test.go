@@ -27,13 +27,16 @@ const (
 	GOROUTER_TIMEOUT  = "20s"
 )
 
-func testCfCurl() {
-	curlFunc := func() *gexec.Session {
-		session := cf.Cf("curl", "/v2/info")
-		return session.Wait()
+func waitForCfToBeAvailable() {
+	infoStatusCode := func() (int, error) {
+		statusCode, _, err := curl("http://api." + config.OverrideDomain + "/v2/info")
+		if err != nil {
+			return 0, err
+		}
+		return statusCode, nil
 	}
 
-	Eventually(curlFunc, GOROUTER_TIMEOUT).Should(gexec.Exit(0))
+	Eventually(infoStatusCode, GOROUTER_TIMEOUT).Should(Equal(200))
 }
 
 func boshCmd(manifest, action, completeMsg string) {
@@ -71,6 +74,7 @@ func smokeTestDiego() {
 type cfApp struct {
 	appName, orgName, spaceName string
 	appRoute                    url.URL
+	attemptedCurls              int
 	failedCurls                 int
 	maxFailedCurls              int
 }
@@ -166,7 +170,8 @@ func (testApp *cfApp) NewPoller() ifrit.RunFunc {
 				curlTimer.Reset(2 * time.Second)
 
 			case <-signals:
-				By(fmt.Sprintf("exiting continuous test poller (%d failed curl requests)\n", testApp.failedCurls))
+				By(fmt.Sprintf("exiting continuous test poller (%d failed curl requests / %d attempted curl requests)\n", testApp.failedCurls, testApp.attemptedCurls))
+				testApp.attemptedCurls = 0
 				testApp.failedCurls = 0
 				return nil
 			}
@@ -185,6 +190,8 @@ func (a *cfApp) Curl(endpoint string) (string, error) {
 		return "", err
 	}
 
+	a.attemptedCurls++
+
 	switch {
 	case statusCode == 200:
 		return string(body), nil
@@ -198,6 +205,7 @@ func (a *cfApp) Curl(endpoint string) (string, error) {
 	default:
 		err := newCurlErr(url, statusCode, body)
 		fmt.Fprintln(GinkgoWriter, "FAILED CURL", err.Error())
+		a.failedCurls++
 		return "", err
 	}
 }
