@@ -42,7 +42,9 @@ function generate_component_manifest() {
       > $TMP_DIR/${component}.yml
   fi
 
-  spiff merge $TMP_DIR/${component}.yml $CURRENT_DIR/${component}/deployment-name.yml $LEGACY_STUBS > $OUTPUT_DIR/${component}.yml
+  spiff merge $OUTPUT_DIR/cf.yml $CURRENT_DIR/stubs/disable_reuse_compilation_vms.yml > $TMP_DIR/cf.yml
+  mv $TMP_DIR/cf.yml $OUTPUT_DIR/cf.yml
+  spiff merge $TMP_DIR/${component}.yml $CURRENT_DIR/${component}/deployment-name.yml $CURRENT_DIR/stubs/disable_reuse_compilation_vms.yml $LEGACY_STUBS > $OUTPUT_DIR/${component}.yml
 
   echo "Created manifest for ${component}: ${OUTPUT_DIR}/${component}.yml"
 }
@@ -119,6 +121,7 @@ pushd $DIEGO_RELEASE_DIR > /dev/null
       manifest-generation/diego-smoke-tests.yml \
       manifest-generation/bosh-lite-stubs/smoke-tests-properties.yml \
       ${CURRENT_DIR}/smoke-tests/iaas-settings.yml \
+      ${CURRENT_DIR}/stubs/disable_reuse_compilation_vms.yml \
       ${TMP_DIR}/config-from-cf.yml \
       > ${OUTPUT_DIR}/diego-smoke-tests.yml
   fi
