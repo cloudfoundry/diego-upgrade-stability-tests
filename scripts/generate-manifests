@@ -29,7 +29,6 @@ function generate_component_manifest() {
       -i $CURRENT_DIR/${component}/iaas-settings.yml \
       -p manifest-generation/bosh-lite-stubs/property-overrides.yml \
       -n $CURRENT_DIR/${component}/instance-count-overrides.yml \
-      -k manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
       -v manifest-generation/bosh-lite-stubs/release-versions.yml \
       > $TMP_DIR/${component}.yml
   else
@@ -37,7 +36,6 @@ function generate_component_manifest() {
       ${TMP_DIR}/director.yml \
       manifest-generation/bosh-lite-stubs/property-overrides.yml \
       $CURRENT_DIR/${component}/instance-count-overrides.yml \
-      manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
       $CURRENT_DIR/${component}/iaas-settings.yml \
       manifest-generation/bosh-lite-stubs/additional-jobs.yml \
       $OUTPUT_DIR \
