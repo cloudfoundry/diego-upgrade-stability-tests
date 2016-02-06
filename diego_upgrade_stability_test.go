@@ -42,8 +42,9 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		generateManifestCmd := exec.Command("./scripts/generate-manifests",
 			"-d", filepath.Join(config.BaseReleaseDirectory, config.V0DiegoReleasePath),
 			"-c", filepath.Join(config.BaseReleaseDirectory, config.V0CfReleasePath),
+			"-a", config.AwsStubsDirectory,
 			"-l",
-			"-o", config.OverrideDomain,
+			"-o", config.OverrideDomain, // Leave the -o option last. getops exits in script if this is empty
 		)
 		sess, err = Start(generateManifestCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())

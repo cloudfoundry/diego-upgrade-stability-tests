@@ -67,11 +67,15 @@ cat > config.json <<EOF
   "v0_diego_release_path": "diego-release-v0",
   "v1_cf_release_path": "cf-release",
   "v1_diego_release_path": "diego-release",
-  "max_polling_errors": 1
+  "max_polling_errors": 1,
+  "aws_stubs_directory": REPLACE_ME
 }
 EOF
 export CONFIG=$PWD/config.json
 ```
+
+The aws_stubs_directory is required due to the fact that bosh-lite has breaking changes to the blobstore
+when running locally. Using an AWS s3 bucket allows us to work around this issue.
 
 You can then run the following tests with:
 

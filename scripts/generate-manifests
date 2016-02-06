@@ -13,7 +13,8 @@ function usage() {
   -d diego release directory location
   -c cf release directory location
   -l legacy release versions
-  -o override  domain"
+  -o override  domain
+  -a aws credentials directory"
   exit 1
 }
 
@@ -55,13 +56,16 @@ scripts_path=$(absolute_path `dirname $0`)
 
 CURRENT_DIR=$(absolute_path $scripts_path/..)
 
-while getopts "d:c:o:l" opt; do
+while getopts "d:c:o:l:a:" opt; do
   case $opt in
     d)
       DIEGO_RELEASE_DIR=$OPTARG
       ;;
     c)
       CF_RELEASE_DIR=$OPTARG
+      ;;
+    a)
+      AWS_STUBS_DIR=$OPTARG
       ;;
     o)
       OVERRIDE_DOMAIN=$OPTARG
@@ -82,6 +86,7 @@ TMP_DIR=`mktemp -d -t upgrade-stable-manifests.XXXXXXXXXXXX`
 
 echo DIEGO_RELEASE_DIR=$DIEGO_RELEASE_DIR
 echo CF_RELEASE_DIR=$CF_RELEASE_DIR
+echo AWS_STUBS_DIR=$AWS_STUBS_DIR
 
 if [ ! -d "${DIEGO_RELEASE_DIR}" ]; then
   >&2 echo "Diego Release Directory '${DIEGO_RELEASE_DIR}' is not a directory"
@@ -93,6 +98,10 @@ if [ ! -d "${CF_RELEASE_DIR}" ]; then
   usage
 fi
 
+if [ ! -d "${AWS_STUBS_DIR}" ]; then
+  >&2 echo "AWS Stubs Directory '${AWS_STUBS_DIR}' is not a directory"
+fi
+
 mkdir -p $OUTPUT_DIR
 
 DIRECTOR_UUID=$(bosh status --uuid)
@@ -101,7 +110,9 @@ echo "director_uuid: ${DIRECTOR_UUID}" > $TMP_DIR/director.yml
 pushd $CF_RELEASE_DIR > /dev/null
   BOSH_RELEASES_DIR=$PWD/.. ./scripts/generate-bosh-lite-dev-manifest \
     ${CURRENT_DIR}/misc-stubs/diego-default.yml \
-    ${LEGACY_STUBS}
+    ${LEGACY_STUBS} \
+    ${AWS_STUBS_DIR}/blobstore.yml \
+    ${AWS_STUBS_DIR}/aws-keys.yml
 
   cp bosh-lite/deployments/cf.yml ${OUTPUT_DIR}/cf.yml
 popd > /dev/null
