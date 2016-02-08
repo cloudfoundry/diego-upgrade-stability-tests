@@ -111,7 +111,7 @@ pushd $CF_RELEASE_DIR > /dev/null
   BOSH_RELEASES_DIR=$PWD/.. ./scripts/generate-bosh-lite-dev-manifest \
     ${CURRENT_DIR}/misc-stubs/diego-default.yml \
     ${LEGACY_STUBS} \
-    ${AWS_STUBS_DIR}/blobstore.yml \
+    ${AWS_STUBS_DIR}/dusts/blobstore.yml \
     ${AWS_STUBS_DIR}/aws-keys.yml
 
   cp bosh-lite/deployments/cf.yml ${OUTPUT_DIR}/cf.yml
