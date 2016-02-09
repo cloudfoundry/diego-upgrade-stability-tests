@@ -87,6 +87,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		generateManifestCmd := exec.Command("./scripts/generate-manifests",
 			"-d", filepath.Join(config.BaseReleaseDirectory, config.V1DiegoReleasePath),
 			"-c", filepath.Join(config.BaseReleaseDirectory, config.V1CfReleasePath),
+			"-a", filepath.Join(config.BaseReleaseDirectory, config.AwsStubsDirectory),
 			"-o", config.OverrideDomain,
 		)
 		sess, err := Start(generateManifestCmd, GinkgoWriter, GinkgoWriter)
