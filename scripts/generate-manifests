@@ -56,7 +56,7 @@ scripts_path=$(absolute_path `dirname $0`)
 
 CURRENT_DIR=$(absolute_path $scripts_path/..)
 
-while getopts "d:c:o:l:a:" opt; do
+while getopts "d:c:o:la:" opt; do
   case $opt in
     d)
       DIEGO_RELEASE_DIR=$OPTARG
