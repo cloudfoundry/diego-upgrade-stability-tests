@@ -24,8 +24,8 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		boshCmd("", "delete deployment cf-warden", "")
 		boshCmd("", "delete deployment cf-warden-diego-database", "")
 		boshCmd("", "delete deployment cf-warden-diego-brain-and-pals", "")
-		boshCmd("", "delete deployment cf-warden-diego-cell1", "")
-		boshCmd("", "delete deployment cf-warden-diego-cell2", "")
+		boshCmd("", "delete deployment cf-warden-diego-cell1 --force", "")
+		boshCmd("", "delete deployment cf-warden-diego-cell2 --force", "")
 
 		By("Ensuring the V0 is not currently deployed")
 		deploymentsCmd := bosh("deployments")
@@ -121,7 +121,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		By("Stopping Cell 2")
 		boshCmd("", "download manifest cf-warden-diego-cell2 manifests/legacy-cell-2.yml", `Deployment manifest saved to .manifests\/legacy-cell-2.yml'`)
 		boshCmd("manifests/legacy-cell-2.yml", "stop cell_z2", `cell_z2\/.* stopped, VM\(s\) still running`)
-		boshCmd("manifests/legacy-cell-2.yml", "delete deployment cf-warden-diego-cell2", "Deleted deployment `cf-warden-diego-cell2'")
+		boshCmd("manifests/legacy-cell-2.yml", "delete deployment cf-warden-diego-cell2 --force", "Deleted deployment `cf-warden-diego-cell2'")
 		ginkgomon.Kill(pollerProcess)
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
@@ -147,7 +147,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// Deleting the deployment because #108279564
 		By("Stopping Cell 1")
 		boshCmd("manifests/cell1.yml", "stop cell_z1", `cell_z1\/.* stopped, VM\(s\) still running`)
-		boshCmd("manifests/cell1.yml", "delete deployment cf-warden-diego-cell1", "Deleted deployment `cf-warden-diego-cell1'")
+		boshCmd("manifests/cell1.yml", "delete deployment cf-warden-diego-cell1 --force", "Deleted deployment `cf-warden-diego-cell1'")
 		ginkgomon.Kill(pollerProcess)
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
