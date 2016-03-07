@@ -129,14 +129,6 @@ pushd $DIEGO_RELEASE_DIR > /dev/null
       manifest-generation/config-from-cf-internal.yml \
       ${OUTPUT_DIR}/cf.yml \
       > ${TMP_DIR}/config-from-cf.yml
-
-    spiff merge \
-      manifest-generation/diego-smoke-tests.yml \
-      manifest-generation/bosh-lite-stubs/smoke-tests-properties.yml \
-      ${CURRENT_DIR}/smoke-tests/iaas-settings.yml \
-      ${CURRENT_DIR}/stubs/disable_reuse_compilation_vms.yml \
-      ${TMP_DIR}/config-from-cf.yml \
-      > ${OUTPUT_DIR}/diego-smoke-tests.yml
   fi
 popd > /dev/null
 
