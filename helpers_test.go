@@ -24,20 +24,7 @@ const (
 	CF_USER           = "admin"
 	CF_PASSWORD       = "admin"
 	APP_ROUTE_PATTERN = "http://%s.%s"
-	GOROUTER_TIMEOUT  = "20s"
 )
-
-func waitForCfToBeAvailable() {
-	infoStatusCode := func() (int, error) {
-		statusCode, _, err := curl("http://api." + config.OverrideDomain + "/v2/info")
-		if err != nil {
-			return 0, err
-		}
-		return statusCode, nil
-	}
-
-	Eventually(infoStatusCode, GOROUTER_TIMEOUT).Should(Equal(200))
-}
 
 func boshCmd(manifest, action, completeMsg string) {
 	args := []string{"-n"}
