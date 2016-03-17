@@ -21,9 +21,9 @@ import (
 )
 
 const (
-	CF_USER           = "admin"
-	CF_PASSWORD       = "admin"
-	APP_ROUTE_PATTERN = "http://%s.%s"
+	CFUser          = "admin"
+	CFPassword      = "admin"
+	AppRoutePattern = "http://%s.%s"
 )
 
 func boshCmd(manifest, action, completeMsg string) {
@@ -68,7 +68,7 @@ type cfApp struct {
 
 func newCfApp(appNamePrefix string, maxFailedCurls int) *cfApp {
 	appName := appNamePrefix + "-" + generator.RandomName()
-	rawUrl := fmt.Sprintf(APP_ROUTE_PATTERN, appName, config.OverrideDomain)
+	rawUrl := fmt.Sprintf(AppRoutePattern, appName, config.OverrideDomain)
 	appUrl, err := url.Parse(rawUrl)
 	if err != nil {
 		panic(err)
@@ -85,7 +85,7 @@ func newCfApp(appNamePrefix string, maxFailedCurls int) *cfApp {
 func (a *cfApp) Push() {
 	// create org and space
 	Eventually(func() int {
-		return cf.Cf("login", "-a", "api."+config.OverrideDomain, "-u", CF_USER, "-p", CF_PASSWORD, "--skip-ssl-validation").Wait().ExitCode()
+		return cf.Cf("login", "-a", "api."+config.OverrideDomain, "-u", CFUser, "-p", CFPassword, "--skip-ssl-validation").Wait().ExitCode()
 	}).Should(Equal(0))
 	Eventually(cf.Cf("create-org", a.orgName)).Should(gexec.Exit(0))
 	Eventually(cf.Cf("target", "-o", a.orgName)).Should(gexec.Exit(0))
