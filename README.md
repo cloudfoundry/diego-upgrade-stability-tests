@@ -15,6 +15,7 @@ bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-l
 # Current Releases
 bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/etcd-release
 bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release
+bosh upload release https://bosh.io/d/github.com/cloudfoundry/cflinuxfs2-rootfs-release
 ```
 
 ### Checkout the correct version of legacy releases
