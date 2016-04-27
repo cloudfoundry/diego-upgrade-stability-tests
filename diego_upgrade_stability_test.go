@@ -51,19 +51,19 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
 
 		By("Deploying CF")
-		boshCmd("manifests/cf.yml", "deploy", "Deployed `cf-warden'")
+		boshCmd("manifests/cf.yml", "deploy", "Deployed 'cf-warden'")
 
 		By("Deploying Database")
-		boshCmd("manifests/database.yml", "deploy", "Deployed `cf-warden-diego-database'")
+		boshCmd("manifests/database.yml", "deploy", "Deployed 'cf-warden-diego-database'")
 
 		By("Deploying Brain and Pals")
-		boshCmd("manifests/brain-and-pals.yml", "deploy", "Deployed `cf-warden-diego-brain-and-pals'")
+		boshCmd("manifests/brain-and-pals.yml", "deploy", "Deployed 'cf-warden-diego-brain-and-pals'")
 
 		By("Deploying Cell 1")
-		boshCmd("manifests/cell1.yml", "deploy", "Deployed `cf-warden-diego-cell1'")
+		boshCmd("manifests/cell1.yml", "deploy", "Deployed 'cf-warden-diego-cell1'")
 
 		By("Deploying Cell 2")
-		boshCmd("manifests/cell2.yml", "deploy", "Deployed `cf-warden-diego-cell2'")
+		boshCmd("manifests/cell2.yml", "deploy", "Deployed 'cf-warden-diego-cell2'")
 
 		By("Deploying a Test App")
 		pollerApp = newCfApp("test-app", config.MaxPollingErrors)
@@ -97,7 +97,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// ************************************************************ //
 		// UPGRADE D1
 		By("Upgrading Database")
-		boshCmd("manifests/database.yml", "deploy", "Deployed `cf-warden-diego-database'")
+		boshCmd("manifests/database.yml", "deploy", "Deployed 'cf-warden-diego-database'")
 
 		By("Running Smoke Tests #1")
 		smokeTestDiego()
@@ -111,7 +111,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// ************************************************************ //
 		// UPGRADE D3
 		By("Upgrading Cell 1")
-		boshCmd("manifests/cell1.yml", "deploy", "Deployed `cf-warden-diego-cell1'")
+		boshCmd("manifests/cell1.yml", "deploy", "Deployed 'cf-warden-diego-cell1'")
 		ginkgomon.Kill(pollerProcess)
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
@@ -120,7 +120,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		By("Stopping Cell 2")
 		boshCmd("", "download manifest cf-warden-diego-cell2 manifests/legacy-cell-2.yml", `Deployment manifest saved to .manifests\/legacy-cell-2.yml'`)
 		boshCmd("manifests/legacy-cell-2.yml", "stop cell_z2", `cell_z2\/.* stopped, VM\(s\) still running`)
-		boshCmd("manifests/legacy-cell-2.yml", "delete deployment cf-warden-diego-cell2 --force", "Deleted deployment `cf-warden-diego-cell2'")
+		boshCmd("manifests/legacy-cell-2.yml", "delete deployment cf-warden-diego-cell2 --force", "Deleted deployment 'cf-warden-diego-cell2'")
 		ginkgomon.Kill(pollerProcess)
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
@@ -136,17 +136,17 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// ************************************************************ //
 		// UPGRADE D2
 		By("Upgrading Brain and Pals")
-		boshCmd("manifests/brain-and-pals.yml", "deploy", "Deployed `cf-warden-diego-brain-and-pals'")
+		boshCmd("manifests/brain-and-pals.yml", "deploy", "Deployed 'cf-warden-diego-brain-and-pals'")
 
 		// START D4
 		By("Deploying Cell 2")
-		boshCmd("manifests/legacy-cell-2.yml", "deploy", "Deployed `cf-warden-diego-cell2'")
+		boshCmd("manifests/legacy-cell-2.yml", "deploy", "Deployed 'cf-warden-diego-cell2'")
 
 		// AND STOP D3
 		// Deleting the deployment because #108279564
 		By("Stopping Cell 1")
 		boshCmd("manifests/cell1.yml", "stop cell_z1", `cell_z1\/.* stopped, VM\(s\) still running`)
-		boshCmd("manifests/cell1.yml", "delete deployment cf-warden-diego-cell1 --force", "Deleted deployment `cf-warden-diego-cell1'")
+		boshCmd("manifests/cell1.yml", "delete deployment cf-warden-diego-cell1 --force", "Deleted deployment 'cf-warden-diego-cell1'")
 		ginkgomon.Kill(pollerProcess)
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
@@ -162,7 +162,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// UPGRADE CF
 		By("Upgrading CF")
 		ginkgomon.Kill(pollerProcess)
-		boshCmd("manifests/cf.yml", "deploy", "Deployed `cf-warden'")
+		boshCmd("manifests/cf.yml", "deploy", "Deployed 'cf-warden'")
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
 		By("Running Smoke Tests #4")
@@ -177,11 +177,11 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// ************************************************************ //
 		// BEFORE UPGRADING D4, START D3
 		By("Starting Cell 1")
-		boshCmd("manifests/cell1.yml", "deploy", "Deployed `cf-warden-diego-cell1'")
+		boshCmd("manifests/cell1.yml", "deploy", "Deployed 'cf-warden-diego-cell1'")
 
 		// UPGRADE D4
 		By("Upgrading Cell 2")
-		boshCmd("manifests/cell2.yml", "deploy", "Deployed `cf-warden-diego-cell2'")
+		boshCmd("manifests/cell2.yml", "deploy", "Deployed 'cf-warden-diego-cell2'")
 		ginkgomon.Kill(pollerProcess)
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
