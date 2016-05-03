@@ -5,5 +5,5 @@ releases:
   version: 223
 - name: garden-linux
   version: 0.316.0
-- name: etcd-release
+- name: etcd
   version: 18
