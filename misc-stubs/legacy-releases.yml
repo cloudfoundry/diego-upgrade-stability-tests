@@ -1,9 +1,3 @@
 releases:
-- name: diego
-  version: 0.1440.0
 - name: cf
   version: 224
-- name: garden-linux
-  version: 0.326.0
-- name: etcd
-  version: 18

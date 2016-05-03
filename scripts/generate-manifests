@@ -36,12 +36,12 @@ function generate_component_manifest() {
       > $TMP_DIR/${component}.yml
   else
     ./scripts/generate-deployment-manifest \
-      ${TMP_DIR}/director.yml \
       manifest-generation/bosh-lite-stubs/property-overrides.yml \
       $CURRENT_DIR/${component}/instance-count-overrides.yml \
       manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
       $CURRENT_DIR/${component}/iaas-settings.yml \
       manifest-generation/bosh-lite-stubs/additional-jobs.yml \
+      $CURRENT_DIR/misc-stubs/release-versions.yml \
       $OUTPUT_DIR \
       > $TMP_DIR/${component}.yml
   fi
@@ -104,9 +104,6 @@ if [ ! -d "${AWS_STUBS_DIR}" ]; then
 fi
 
 mkdir -p $OUTPUT_DIR
-
-DIRECTOR_UUID=$(bosh status --uuid)
-echo "director_uuid: ${DIRECTOR_UUID}" > $TMP_DIR/director.yml
 
 pushd $CF_RELEASE_DIR > /dev/null
   BOSH_RELEASES_DIR=$PWD/.. ./scripts/generate-bosh-lite-dev-manifest \
