@@ -32,7 +32,6 @@ function generate_component_manifest() {
       -n $CURRENT_DIR/${component}/instance-count-overrides.yml \
       -k manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
       -v manifest-generation/bosh-lite-stubs/release-versions.yml \
-      -r \
       > $TMP_DIR/${component}.yml
   else
     ./scripts/generate-deployment-manifest \
