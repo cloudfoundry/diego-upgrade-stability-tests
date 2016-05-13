@@ -1,6 +1,8 @@
 package upgrade_test
 
 import (
+	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 
@@ -26,6 +28,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		boshCmd("", "delete deployment cf-warden-diego-brain-and-pals", "")
 		boshCmd("", "delete deployment cf-warden-diego-cell1 --force", "")
 		boshCmd("", "delete deployment cf-warden-diego-cell2 --force", "")
+		boshCmd("", "delete deployment cf-warden-mysql --force", "")
 
 		By("Ensuring the V0 is not currently deployed")
 		deploymentsCmd := bosh("deployments")
@@ -37,6 +40,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Expect(sess).NotTo(Say("cf-warden-diego-cell1"))
 		Expect(sess).NotTo(Say("cf-warden-diego-cell2"))
 		Expect(sess).NotTo(Say("cf-warden-diego-database"))
+		Expect(sess).NotTo(Say("cf-warden-mysql"))
 
 		By("Generating the V0 deployment manifests for 5 piece wise deployments")
 		generateManifestCmd := exec.Command("./scripts/generate-manifests",
@@ -46,6 +50,12 @@ var _ = Describe("Upgrade Stability Tests", func() {
 			"-l",
 			"-o", config.OverrideDomain, // Leave the -o option last. getops exits in script if this is empty
 		)
+
+		generateManifestCmd.Env = append(
+			os.Environ(),
+			fmt.Sprintf("BOSH_RELEASES_DIR:%s", filepath.Join(config.BaseReleaseDirectory, "releases")),
+		)
+
 		sess, err = Start(generateManifestCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
@@ -83,15 +93,25 @@ var _ = Describe("Upgrade Stability Tests", func() {
 
 	It("Upgrades from V0 to V1", func() {
 		By("Generating the V1 deployment manifests for 5 piece wise deployments")
-		generateManifestCmd := exec.Command("./scripts/generate-manifests",
+		arguments := []string{
 			"-d", filepath.Join(config.BaseReleaseDirectory, config.V1DiegoReleasePath),
 			"-c", filepath.Join(config.BaseReleaseDirectory, config.V1CfReleasePath),
 			"-a", filepath.Join(config.BaseReleaseDirectory, config.AwsStubsDirectory),
 			"-o", config.OverrideDomain,
-		)
+		}
+
+		if config.UseSQLVPrime {
+			arguments = append(arguments, "-s")
+		}
+
+		generateManifestCmd := exec.Command("./scripts/generate-manifests", arguments...)
+
 		sess, err := Start(generateManifestCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
+
+		By("Deploying MySQL")
+		boshCmd("manifests/cf-mysql.yml", "deploy", "Deployed 'cf-warden-mysql'")
 
 		// Roll the Diego Database
 		// ************************************************************ //

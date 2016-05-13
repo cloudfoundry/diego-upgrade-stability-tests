@@ -8,12 +8,13 @@ absolute_path() {
 
 function usage() {
   >&2 echo "
-  Usage: $0 -d DIEGO_RELEASE_DIR -c CF_RELEASE_DIR (-l)
+  Usage: $0 -d DIEGO_RELEASE_DIR -c CF_RELEASE_DIR -o OVERRIDE_DOMAIN (-l -a -s)
 
   -d diego release directory location
   -c cf release directory location
   -l legacy release versions
   -o override  domain
+  -s use sql
   -a aws credentials directory"
   exit 1
 }
@@ -25,6 +26,11 @@ function generate_component_manifest() {
   # so we need to adjust the arguments based on whether we're deploying a new
   # release or v0 (legacy).
   if [ -z ${LEGACY_STUBS} ]; then
+    pushd $DIEGO_RELEASE_DIR > /dev/null
+      ./scripts/experimental/generate-mysql-bosh-lite-manifest
+      mv ./bosh-lite/deployments/cf-mysql.yml $OUTPUT_DIR/
+    popd > /dev/null
+
     ./scripts/generate-deployment-manifest \
       -c $OUTPUT_DIR/cf.yml \
       -i $CURRENT_DIR/${component}/iaas-settings.yml \
@@ -32,6 +38,7 @@ function generate_component_manifest() {
       -n $CURRENT_DIR/${component}/instance-count-overrides.yml \
       -k manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
       -v manifest-generation/bosh-lite-stubs/release-versions.yml \
+      ${SQL_FLAG:""} \
       > $TMP_DIR/${component}.yml
   else
     ./scripts/generate-deployment-manifest \
@@ -56,7 +63,7 @@ scripts_path=$(absolute_path `dirname $0`)
 
 CURRENT_DIR=$(absolute_path $scripts_path/..)
 
-while getopts "d:c:o:la:" opt; do
+while getopts "d:c:o:lsa:" opt; do
   case $opt in
     d)
       DIEGO_RELEASE_DIR=$OPTARG
@@ -74,6 +81,11 @@ while getopts "d:c:o:la:" opt; do
     l)
       echo 'Using misc-stubs/legacy-releases.yml for legacy versioned releases'
       LEGACY_STUBS=$CURRENT_DIR/misc-stubs/legacy-releases.yml
+      ;;
+    s)
+      echo 'Using manifest-generation/bosh-lite-stubs/experimental/mysql/diego-sql.yml for diego release'
+      SQL_FLAG="-s manifest-generation/bosh-lite-stubs/experimental/mysql/diego-sql.yml"
+
       ;;
     \?)
       echo no dawg >&2

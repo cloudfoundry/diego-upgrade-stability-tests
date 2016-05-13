@@ -30,6 +30,7 @@ type TestConfig struct {
 	V1CfReleasePath      string `json:"v1_cf_release_path"`
 	OverrideDomain       string `json:"override_domain"`
 	MaxPollingErrors     int    `json:"max_polling_errors,omitempty"`
+	UseSQLVPrime         bool   `json:"use_sql_vprime"`
 
 	AwsStubsDirectory string `json:"aws_stubs_directory"`
 }
