@@ -38,7 +38,7 @@ function generate_component_manifest() {
       -n $CURRENT_DIR/${component}/instance-count-overrides.yml \
       -k manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
       -v manifest-generation/bosh-lite-stubs/release-versions.yml \
-      ${SQL_FLAG:""} \
+      ${SQL_FLAG} \
       > $TMP_DIR/${component}.yml
   else
     ./scripts/generate-deployment-manifest \
@@ -63,6 +63,7 @@ scripts_path=$(absolute_path `dirname $0`)
 
 CURRENT_DIR=$(absolute_path $scripts_path/..)
 
+SQL_FLAG=""
 while getopts "d:c:o:lsa:" opt; do
   case $opt in
     d)
