@@ -16,6 +16,9 @@ bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-l
 bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/etcd-release
 bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release
 bosh upload release https://bosh.io/d/github.com/cloudfoundry/cflinuxfs2-rootfs-release
+
+# Optional Releases
+bosh upload release https://bosh.io/d/github.com/cloudfoundry/cf-mysql-release
 ```
 
 ### Checkout the correct version of legacy releases
@@ -69,7 +72,8 @@ cat > config.json <<EOF
   "v1_cf_release_path": "[CF RELEASE DIR]",
   "v1_diego_release_path": "[DIEGO RELEASE DIR]",
   "max_polling_errors": 1,
-  "aws_stubs_directory": REPLACE_ME
+  "aws_stubs_directory": REPLACE_ME,
+  "use_sql_vprime": false
 }
 EOF
 export CONFIG=$PWD/config.json
@@ -79,6 +83,8 @@ Make sure the release directories for the legacy and latest Cloud Foundry and Di
 
 The aws_stubs_directory is required due to the fact that bosh-lite has breaking changes to the blobstore
 when running locally. Using an AWS s3 bucket allows us to work around this issue.
+
+The use_sql_vprime boolean property specifies whether the bbs should upgrade onto sql. It should only be specified as true if a cf-mysql-release has been uploaded.
 
 You can then run the following tests with:
 
