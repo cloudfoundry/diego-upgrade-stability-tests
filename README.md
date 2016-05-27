@@ -56,7 +56,7 @@ bosh upload stemcell https://bosh.io/d/stemcells/bosh-warden-boshlite-ubuntu-tru
 ### Run the test suite
 
 The DUSTs require the CONFIG environment variable to be set to the path of a valid configuration JSON file.
-The following commands will setup the `CONFIG` for a [bosh-lite](https://github.com/cloudfoundry/bosh-lite) installation.
+The following commands will setup the `CONFIG` for a [BOSH-Lite](https://github.com/cloudfoundry/bosh-lite) installation.
 Replace credentials and URLs as appropriate for your environment.
 
 ```bash
@@ -79,16 +79,20 @@ EOF
 export CONFIG=$PWD/config.json
 ```
 
-Make sure the release directories for the legacy and latest Cloud Foundry and Diego are named `cf-release` and `diego-release`, otherwise the deployments will fail.
+Make sure the release directories for the legacy and latest Cloud Foundry and Diego are named `cf-release` and `diego-release`, as otherwise the deployments will fail.
 
-The aws_stubs_directory is required due to the fact that bosh-lite has breaking changes to the blobstore
-when running locally. Using an AWS s3 bucket allows us to work around this issue.
+BOSH-Lite deployments of CF v220 that use the 'local' blobstore cannot be
+upgraded to CF deployments that use the `blobstore` job. To work around this,
+the DUSTs must be configured to use an AWS S3 bucket as the CC blobstore. Create
+a directory with stubs to configure that blobstore, then supply the path of that
+directory as the value of the `aws_stubs_directory` configuration parameter.
 
-The use_sql_vprime boolean property specifies whether the bbs should upgrade onto sql. It should only be specified as true if a cf-mysql-release has been uploaded.
+The `use_sql_vprime` boolean property specifies whether the BBS should migrate
+data from etcd to the SQL store. It should only set to `true` if the cf-mysql
+release has been uploaded.
 
-You can then run the following tests with:
+Run the test suite by invoking the ginkgo CLI from the root of this repository:
 
 ```bash
 ginkgo -v
 ```
-
