@@ -8,8 +8,8 @@ This test suite exercises the upgrade path from the stable CF/Diego configuratio
 
 ```bash
 # Legacy Releases
-bosh upload release https://bosh.io/d/github.com/cloudfoundry/cf-release?v=220
-bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/diego-release?v=0.1434.0
+bosh upload release https://bosh.io/d/github.com/cloudfoundry/cf-release?v=224
+bosh upload release https://bosh.io/d/github.com/cloudfoundry/diego-release?v=0.1440.0
 bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release?v=0.307.0
 
 # Current Releases
