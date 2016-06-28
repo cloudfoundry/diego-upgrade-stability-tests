@@ -1,5 +1,7 @@
 # Diego Upgrade Stability Tests (DUSTs)
 
+**Note**: This repository should be imported as `code.cloudfoundry.org/diego-upgrade-stability-tests`.
+
 This test suite exercises the upgrade path from the stable CF/Diego configuration to a current CF/Diego configuration.
 
 ## Usage
