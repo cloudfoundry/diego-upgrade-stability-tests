@@ -27,7 +27,7 @@ function generate_component_manifest() {
   # release or v0 (legacy).
   if [ -z ${LEGACY_STUBS} ]; then
     pushd $DIEGO_RELEASE_DIR > /dev/null
-      ./scripts/experimental/generate-mysql-bosh-lite-manifest
+      ./scripts/generate-mysql-bosh-lite-manifest
       mv ./bosh-lite/deployments/cf-mysql.yml $OUTPUT_DIR/
     popd > /dev/null
 
@@ -84,8 +84,8 @@ while getopts "d:c:o:lsa:" opt; do
       LEGACY_STUBS=$CURRENT_DIR/misc-stubs/legacy-releases.yml
       ;;
     s)
-      echo 'Using manifest-generation/bosh-lite-stubs/experimental/mysql/diego-sql.yml for diego release'
-      SQL_FLAG="-s manifest-generation/bosh-lite-stubs/experimental/mysql/diego-sql.yml"
+      echo 'Using manifest-generation/bosh-lite-stubs/mysql/diego-sql.yml for diego release'
+      SQL_FLAG="-s manifest-generation/bosh-lite-stubs/mysql/diego-sql.yml"
 
       ;;
     \?)
