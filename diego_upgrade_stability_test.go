@@ -43,13 +43,19 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Expect(sess).NotTo(Say("cf-warden-mysql"))
 
 		By("Generating the V0 deployment manifests for 5 piece wise deployments")
-		generateManifestCmd := exec.Command("./scripts/generate-manifests",
+		arguments := []string{
 			"-d", filepath.Join(config.BaseReleaseDirectory, config.V0DiegoReleasePath),
 			"-c", filepath.Join(config.BaseReleaseDirectory, config.V0CfReleasePath),
 			"-a", filepath.Join(config.BaseReleaseDirectory, config.AwsStubsDirectory),
 			"-l",
 			"-o", config.OverrideDomain, // Leave the -o option last. getops exits in script if this is empty
-		)
+		}
+
+		if config.UseSQLV0 {
+			arguments = append(arguments, "-s")
+		}
+
+		generateManifestCmd := exec.Command("./scripts/generate-manifests", arguments...)
 
 		generateManifestCmd.Env = append(
 			os.Environ(),
@@ -62,6 +68,11 @@ var _ = Describe("Upgrade Stability Tests", func() {
 
 		By("Deploying CF")
 		boshCmd("manifests/cf.yml", "deploy", "Deployed 'cf-warden'")
+
+		if config.UseSQLVPrime {
+			By("Deploying MySQL")
+			boshCmd("manifests/cf-mysql.yml", "deploy", "Deployed 'cf-warden-mysql'")
+		}
 
 		By("Deploying Database")
 		boshCmd("manifests/database.yml", "deploy", "Deployed 'cf-warden-diego-database'")
@@ -109,9 +120,6 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		sess, err := Start(generateManifestCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
-
-		By("Deploying MySQL")
-		boshCmd("manifests/cf-mysql.yml", "deploy", "Deployed 'cf-warden-mysql'")
 
 		// Roll the Diego Database
 		// ************************************************************ //
