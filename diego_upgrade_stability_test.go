@@ -47,8 +47,11 @@ var _ = Describe("Upgrade Stability Tests", func() {
 			"-d", filepath.Join(config.BaseReleaseDirectory, config.V0DiegoReleasePath),
 			"-c", filepath.Join(config.BaseReleaseDirectory, config.V0CfReleasePath),
 			"-a", filepath.Join(config.BaseReleaseDirectory, config.AwsStubsDirectory),
-			"-l",
 			"-o", config.OverrideDomain, // Leave the -o option last. getops exits in script if this is empty
+		}
+
+		if config.DiegoReleaseV0Legacy {
+			arguments = append(arguments, "-l")
 		}
 
 		if config.UseSQLV0 {
@@ -69,7 +72,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		By("Deploying CF")
 		boshCmd("manifests/cf.yml", "deploy", "Deployed 'cf-warden'")
 
-		if config.UseSQLVPrime {
+		if config.UseSQLV0 {
 			By("Deploying MySQL")
 			boshCmd("manifests/cf-mysql.yml", "deploy", "Deployed 'cf-warden-mysql'")
 		}
@@ -120,6 +123,12 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		sess, err := Start(generateManifestCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
+
+		// only deploy mysql if it wasn't deployed in V0
+		if config.UseSQLVPrime && !config.UseSQLV0 {
+			By("Deploying MySQL")
+			boshCmd("manifests/cf-mysql.yml", "deploy", "Deployed 'cf-warden-mysql'")
+		}
 
 		// Roll the Diego Database
 		// ************************************************************ //

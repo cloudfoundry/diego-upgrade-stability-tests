@@ -33,6 +33,8 @@ type TestConfig struct {
 	UseSQLV0             bool   `json:"use_sql_v0"`
 	UseSQLVPrime         bool   `json:"use_sql_vprime"`
 
+	DiegoReleaseV0Legacy bool `json:"diego_release_v0_legacy"`
+
 	AwsStubsDirectory string `json:"aws_stubs_directory"`
 }
 
