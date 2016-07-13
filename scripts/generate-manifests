@@ -24,6 +24,7 @@ function generate_component_manifest() {
 
   if [ "x${SQL_FLAG}" != "x" ]; then
     pushd $DIEGO_RELEASE_DIR > /dev/null
+      export CF_RELEASE_DIR
       ./scripts/generate-mysql-bosh-lite-manifest
       mv ./bosh-lite/deployments/cf-mysql.yml $OUTPUT_DIR/
     popd > /dev/null
