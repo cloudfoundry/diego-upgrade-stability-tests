@@ -27,8 +27,11 @@ function generate_component_manifest() {
   # release or v0 (legacy).
   if [ -z ${LEGACY_STUBS} ]; then
     pushd $DIEGO_RELEASE_DIR > /dev/null
-      ./scripts/generate-mysql-bosh-lite-manifest
-      mv ./bosh-lite/deployments/cf-mysql.yml $OUTPUT_DIR/
+      # generate the mysql manifest only when the flag is set
+      if [ ! -z ${SQL_FLAG} ]; then
+	./scripts/generate-mysql-bosh-lite-manifest
+	mv ./bosh-lite/deployments/cf-mysql.yml $OUTPUT_DIR/
+      fi
     popd > /dev/null
 
     ./scripts/generate-deployment-manifest \
