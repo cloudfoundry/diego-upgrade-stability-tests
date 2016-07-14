@@ -40,7 +40,7 @@ function generate_component_manifest() {
         -p manifest-generation/bosh-lite-stubs/property-overrides.yml \
         -n $CURRENT_DIR/${component}/instance-count-overrides.yml \
         -k manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
-        -v manifest-generation/bosh-lite-stubs/release-versions.yml \
+        -v $RELEASE_VERSIONS_STUB \
         ${SQL_FLAG} \
         > $TMP_DIR/${component}.yml
   else
@@ -65,9 +65,10 @@ function generate_component_manifest() {
 scripts_path=$(absolute_path `dirname $0`)
 
 CURRENT_DIR=$(absolute_path $scripts_path/..)
+RELEASE_VERSIONS_STUB=manifest-generation/bosh-lite-stubs/release-versions.yml
 
 SQL_FLAG=""
-while getopts "d:c:o:lsa:" opt; do
+while getopts "d:c:o:rlsa:" opt; do
   case $opt in
     d)
       DIEGO_RELEASE_DIR=$OPTARG
@@ -89,7 +90,10 @@ while getopts "d:c:o:lsa:" opt; do
     s)
       echo 'Using manifest-generation/bosh-lite-stubs/mysql/diego-sql.yml for diego release'
       SQL_FLAG="-s manifest-generation/bosh-lite-stubs/mysql/diego-sql.yml"
-
+      ;;
+    r)
+      echo 'Override the default releases for legacy mysql testing'
+      RELEASE_VERSIONS_STUB=$CURRENT_DIR/misc-stubs/release-versions-mysqlbase.yml
       ;;
     \?)
       echo no dawg >&2

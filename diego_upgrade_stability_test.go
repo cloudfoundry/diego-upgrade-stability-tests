@@ -52,6 +52,8 @@ var _ = Describe("Upgrade Stability Tests", func() {
 
 		if config.DiegoReleaseV0Legacy {
 			arguments = append(arguments, "-l")
+		} else {
+			arguments = append(arguments, "-r")
 		}
 
 		if config.UseSQLV0 {
