@@ -132,16 +132,33 @@ var _ = Describe("Upgrade Stability Tests", func() {
 			boshCmd("manifests/cf-mysql.yml", "deploy", "Deployed 'cf-warden-mysql'")
 		}
 
+		// Roll CF. This must happen first as it configures ETCD to talk over
+		// TLS which is backwards compaitble with older clients, but not the
+		// other way around.
+		// ************************************************************ //
+		// UPGRADE CF
+		By("Upgrading CF")
+		ginkgomon.Kill(pollerProcess)
+		boshCmd("manifests/cf.yml", "deploy", "Deployed 'cf-warden'")
+		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
+
+		By("Running Smoke Tests #1")
+		smokeTestDiego()
+
+		By("Scaling Test App #1")
+		pollerApp.Scale(2)
+		pollerApp.Scale(1)
+
 		// Roll the Diego Database
 		// ************************************************************ //
 		// UPGRADE D1
 		By("Upgrading Database")
 		boshCmd("manifests/database.yml", "deploy", "Deployed 'cf-warden-diego-database'")
 
-		By("Running Smoke Tests #1")
+		By("Running Smoke Tests #2")
 		smokeTestDiego()
 
-		By("Scaling Test App #1")
+		By("Scaling Test App #2")
 		pollerApp.Scale(2)
 		pollerApp.Scale(1)
 
@@ -163,10 +180,10 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		ginkgomon.Kill(pollerProcess)
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
-		By("Running Smoke Tests #2")
+		By("Running Smoke Tests #3")
 		smokeTestDiego()
 
-		By("Scaling Test App #2")
+		By("Scaling Test App #3")
 		pollerApp.Scale(2)
 		pollerApp.Scale(1)
 
@@ -187,21 +204,6 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		boshCmd("manifests/cell1.yml", "stop cell_z1", `cell_z1\/.* stopped, VM\(s\) still running`)
 		boshCmd("manifests/cell1.yml", "delete deployment cf-warden-diego-cell1 --force", "Deleted deployment 'cf-warden-diego-cell1'")
 		ginkgomon.Kill(pollerProcess)
-		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
-
-		By("Running Smoke Tests #3")
-		smokeTestDiego()
-
-		By("Scaling Test App #3")
-		pollerApp.Scale(2)
-		pollerApp.Scale(1)
-
-		// Roll CF to test when everything is upgraded except the cells.
-		// ************************************************************ //
-		// UPGRADE CF
-		By("Upgrading CF")
-		ginkgomon.Kill(pollerProcess)
-		boshCmd("manifests/cf.yml", "deploy", "Deployed 'cf-warden'")
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
 		By("Running Smoke Tests #4")
