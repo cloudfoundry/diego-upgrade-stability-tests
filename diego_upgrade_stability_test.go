@@ -48,12 +48,11 @@ var _ = Describe("Upgrade Stability Tests", func() {
 			"-c", filepath.Join(config.BaseReleaseDirectory, config.V0CfReleasePath),
 			"-a", filepath.Join(config.BaseReleaseDirectory, config.AwsStubsDirectory),
 			"-o", config.OverrideDomain, // Leave the -o option last. getops exits in script if this is empty
+			"-z",
 		}
 
 		if config.DiegoReleaseV0Legacy {
 			arguments = append(arguments, "-l")
-		} else {
-			arguments = append(arguments, "-r")
 		}
 
 		if config.UseSQLV0 {
