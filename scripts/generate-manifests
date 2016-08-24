@@ -22,14 +22,6 @@ function usage() {
 function generate_component_manifest() {
   component=$1
 
-  if [ "x${SQL_FLAG}" != "x" ]; then
-    pushd $DIEGO_RELEASE_DIR > /dev/null
-      export CF_RELEASE_DIR
-      ./scripts/generate-mysql-bosh-lite-manifest
-      mv ./bosh-lite/deployments/cf-mysql.yml $OUTPUT_DIR/
-    popd > /dev/null
-  fi
-
   # The manifest generation script has changed since the initial stable release
   # so we need to adjust the arguments based on whether we're deploying a new
   # release or v0 (legacy).
