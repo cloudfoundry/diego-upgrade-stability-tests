@@ -70,14 +70,16 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
 
-		arguments = []string{
-			"-d", filepath.Join(config.BaseReleaseDirectory, config.V1DiegoReleasePath),
-			"-c", filepath.Join(config.BaseReleaseDirectory, config.V1CfReleasePath),
+		if config.UseSQLV0 || config.UseSQLVPrime {
+			arguments = []string{
+				"-d", filepath.Join(config.BaseReleaseDirectory, config.V1DiegoReleasePath),
+				"-c", filepath.Join(config.BaseReleaseDirectory, config.V1CfReleasePath),
+			}
+			generateMySqlManifestCmd := exec.Command("./scripts/generate-mysql-manifest", arguments...)
+			sess, err = Start(generateMySqlManifestCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
 		}
-		generateMySqlManifestCmd := exec.Command("./scripts/generate-mysql-manifest", arguments...)
-		sess, err = Start(generateMySqlManifestCmd, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
 
 		By("Deploying CF")
 		boshCmd("manifests/cf.yml", "deploy", "Deployed 'cf-warden'")

@@ -35,6 +35,10 @@ OUTPUT_DIR=$CURRENT_DIR/manifests
 
 mkdir -p $OUTPUT_DIR
 
+pushd $CF_RELEASE_DIR > /dev/null
+  ./scripts/generate-bosh-lite-dev-manifest
+popd > /dev/null
+
 pushd $DIEGO_RELEASE_DIR > /dev/null
   export CF_RELEASE_DIR
   ./scripts/generate-mysql-bosh-lite-manifest
