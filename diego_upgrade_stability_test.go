@@ -177,7 +177,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// ************************************************************ //
 		// UPGRADE D3
 		By("Upgrading Cell 1")
-		boshCmd("manifests/cell1.yml", "deploy", "Deployed 'cf-warden-diego-cell1'")
+		boshCmd("manifests/cell1.yml", "deploy --recreate", "Deployed 'cf-warden-diego-cell1'")
 		ginkgomon.Kill(pollerProcess)
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
