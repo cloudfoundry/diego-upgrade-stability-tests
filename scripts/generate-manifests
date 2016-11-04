@@ -33,6 +33,7 @@ function generate_component_manifest() {
         -n $CURRENT_DIR/${component}/instance-count-overrides.yml \
         -k manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
         -v $RELEASE_VERSIONS_STUB \
+        -g \
         ${SQL_FLAG} \
         > $TMP_DIR/${component}.yml
   else
