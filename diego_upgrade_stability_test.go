@@ -15,10 +15,12 @@ import (
 )
 
 var _ = Describe("Upgrade Stability Tests", func() {
-	var sess *Session
-	var err error
-	var pollerProcess ifrit.Process
-	var pollerApp *cfApp
+	var (
+		sess          *Session
+		err           error
+		pollerProcess ifrit.Process
+		pollerApp     *cfApp
+	)
 
 	BeforeEach(func() {
 		By("Deploying V0")

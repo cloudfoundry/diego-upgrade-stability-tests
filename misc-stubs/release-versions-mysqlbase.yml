@@ -1,5 +1,5 @@
 release_versions:
   diego: 0.1480.0
-  garden-linux: 0.340.0
+  garden-runc: latest
   etcd: latest
   cflinuxfs2-rootfs: 1.18.0
