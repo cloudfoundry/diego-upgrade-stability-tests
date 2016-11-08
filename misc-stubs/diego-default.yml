@@ -11,3 +11,5 @@ jobs:
 properties:
   cc:
     default_to_diego_backend: true
+    diego:
+      temporary_local_staging: false
