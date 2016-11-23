@@ -135,6 +135,7 @@ pushd $CF_RELEASE_DIR > /dev/null
     ${AWS_STUBS_DIR}/aws-keys.yml \
     ${CURRENT_DIR}/stubs/disable_reuse_compilation_vms.yml \
     ${CURRENT_DIR}/stubs/deploy_postgres_serially.yml \
+    ${CURRENT_DIR}/stubs/add_uaa_saml_certs.yml \
     ${CF_RELEASE_VERSION_STUB}
 
   spiff merge bosh-lite/deployments/cf.yml > $OUTPUT_DIR/cf.yml
