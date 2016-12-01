@@ -124,9 +124,8 @@ var _ = Describe("Upgrade Stability Tests", func() {
 			"-c", filepath.Join(config.BaseReleaseDirectory, config.V1CfReleasePath),
 			"-a", filepath.Join(config.BaseReleaseDirectory, config.AwsStubsDirectory),
 			"-o", config.OverrideDomain,
+			"-s",
 		}
-
-		arguments = append(arguments, "-s")
 
 		generateManifestCmd := exec.Command("./scripts/generate-manifests", arguments...)
 
