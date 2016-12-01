@@ -72,16 +72,14 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
 
-		if config.UseSQLV0 || config.UseSQLVPrime {
-			arguments = []string{
-				"-d", filepath.Join(config.BaseReleaseDirectory, config.V1DiegoReleasePath),
-				"-c", filepath.Join(config.BaseReleaseDirectory, config.V1CfReleasePath),
-			}
-			generateMySqlManifestCmd := exec.Command("./scripts/generate-mysql-manifest", arguments...)
-			sess, err = Start(generateMySqlManifestCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
+		arguments = []string{
+			"-d", filepath.Join(config.BaseReleaseDirectory, config.V1DiegoReleasePath),
+			"-c", filepath.Join(config.BaseReleaseDirectory, config.V1CfReleasePath),
 		}
+		generateMySqlManifestCmd := exec.Command("./scripts/generate-mysql-manifest", arguments...)
+		sess, err = Start(generateMySqlManifestCmd, GinkgoWriter, GinkgoWriter)
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
 
 		By("Deploying CF")
 		boshCmd("manifests/cf.yml", "deploy", "Deployed 'cf-warden'")
@@ -128,9 +126,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 			"-o", config.OverrideDomain,
 		}
 
-		if config.UseSQLVPrime {
-			arguments = append(arguments, "-s")
-		}
+		arguments = append(arguments, "-s")
 
 		generateManifestCmd := exec.Command("./scripts/generate-manifests", arguments...)
 
@@ -139,7 +135,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Eventually(sess, COMMAND_TIMEOUT).Should(Exit(0))
 
 		// only deploy mysql if it wasn't deployed in V0
-		if config.UseSQLVPrime && !config.UseSQLV0 {
+		if !config.UseSQLV0 {
 			By("Deploying MySQL")
 			boshCmd("manifests/cf-mysql.yml", "deploy", "Deployed 'cf-warden-mysql'")
 		}

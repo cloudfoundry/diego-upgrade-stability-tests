@@ -31,7 +31,6 @@ type TestConfig struct {
 	OverrideDomain       string `json:"override_domain"`
 	MaxPollingErrors     int    `json:"max_polling_errors,omitempty"`
 	UseSQLV0             bool   `json:"use_sql_v0"`
-	UseSQLVPrime         bool   `json:"use_sql_vprime"`
 
 	DiegoReleaseV0Legacy bool `json:"diego_release_v0_legacy"`
 
