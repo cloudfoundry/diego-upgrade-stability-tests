@@ -35,6 +35,7 @@ function generate_component_manifest() {
         -v $RELEASE_VERSIONS_STUB \
         -g \
         ${SQL_FLAG} \
+        ${NO_ETCD_FLAG} \
         > $TMP_DIR/${component}.yml
   else
     ./scripts/generate-deployment-manifest \
@@ -61,7 +62,8 @@ CURRENT_DIR=$(absolute_path $scripts_path/..)
 CF_RELEASE_VERSION_STUB=""
 
 SQL_FLAG=""
-while getopts "d:c:o:rlsa:z" opt; do
+NO_ETCD_FLAG=""
+while getopts "d:c:o:rlxsa:z" opt; do
   case $opt in
     z)
       DEPLOYING_Z0=true
@@ -83,13 +85,14 @@ while getopts "d:c:o:rlsa:z" opt; do
       echo 'Using misc-stubs/legacy-releases.yml for legacy versioned releases'
       LEGACY_STUBS=true
       ;;
+    x)
+      # temporarily adding -x before its behavior becomes the default and we can remove this
+      # -x (for now) says to not deploy the etcd database
+      NO_ETCD_FLAG='-x'
+      ;;
     s)
       echo 'Using manifest-generation/bosh-lite-stubs/mysql/diego-sql.yml for diego release'
       SQL_FLAG="-s manifest-generation/bosh-lite-stubs/mysql/diego-sql.yml"
-
-      # temporarily adding -x before its behavior becomes the default and we can remove this
-      # -x (for now) says to not deploy the etcd database
-      SQL_FLAG="$SQL_FLAG -x"
       ;;
     \?)
       echo no dawg >&2

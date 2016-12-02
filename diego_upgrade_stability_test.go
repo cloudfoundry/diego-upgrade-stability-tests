@@ -124,7 +124,13 @@ var _ = Describe("Upgrade Stability Tests", func() {
 			"-c", filepath.Join(config.BaseReleaseDirectory, config.V1CfReleasePath),
 			"-a", filepath.Join(config.BaseReleaseDirectory, config.AwsStubsDirectory),
 			"-o", config.OverrideDomain,
-			"-s",
+			"-s", // Use SQL
+		}
+
+		if !config.UseSQLV0 {
+			// If we're transitioning from etcd to SQL, we need to keep etcd around in the second deployment to insure no downtime
+			// -x says keep etcd
+			arguments = append(arguments, "-x")
 		}
 
 		generateManifestCmd := exec.Command("./scripts/generate-manifests", arguments...)
