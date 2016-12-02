@@ -59,6 +59,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 
 		if config.UseSQLV0 {
 			arguments = append(arguments, "-s")
+			arguments = append(arguments, "-x")
 		}
 
 		generateManifestCmd := exec.Command("./scripts/generate-manifests", arguments...)
@@ -127,9 +128,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 			"-s", // Use SQL
 		}
 
-		if !config.UseSQLV0 {
-			// If we're transitioning from etcd to SQL, we need to keep etcd around in the second deployment to insure no downtime
-			// -x says keep etcd
+		if config.UseSQLV0 {
 			arguments = append(arguments, "-x")
 		}
 
