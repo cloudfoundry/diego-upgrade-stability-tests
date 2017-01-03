@@ -5,7 +5,7 @@ jobs:
 - name: consul_z2
   instances: 0
 - name: nats_z1
-  instances: 0
+  instances: 1
 - name: nats_z2
   instances: 0
 - name: etcd_z1

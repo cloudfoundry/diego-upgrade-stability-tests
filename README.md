@@ -6,6 +6,10 @@ This test suite exercises the upgrade path from the stable CF/Diego configuratio
 
 ## Usage
 
+These usage instructions will cover running the DUSTs from v1.0.0 of diego-release to
+the latest diego-release on the develop branch. Please see below for changes needed
+to run the dusts from v0.1442.0 of diego-release to the latest develop branch.
+
 ### Upload the necessary legacy releases to your bosh-lite
 
 ```bash
@@ -93,6 +97,65 @@ data from etcd to the SQL store. It should only set to `true` if the cf-mysql
 release has been uploaded.
 
 Run the test suite by invoking the ginkgo CLI from the root of this repository:
+
+```bash
+ginkgo -v
+```
+
+### Changes for diego-release v0.1442.0
+
+### Upload the necessary legacy releases to your bosh-lite
+
+```bash
+# Legacy Releases
+bosh upload release https://bosh.io/d/github.com/cloudfoundry/cf-release?v=226
+bosh upload release https://bosh.io/d/github.com/cloudfoundry/diego-release?v=0.1442.0
+bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release?v=0.328.0
+bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/etcd-release?v=18
+
+# Current Releases
+bosh upload release https://bosh.io/d/github.com/cloudfoundry/garden-runc-release
+bosh upload release https://bosh.io/d/github.com/cloudfoundry/cflinuxfs2-rootfs-release
+bosh upload release https://bosh.io/d/github.com/cloudfoundry/cf-mysql-release
+```
+
+### Checkout the correct version of legacy releases
+
+The V0 manifest generation depends on having cf-release and diego-release cloned to an additional directory.
+The desired versions of each release should be checked out.
+
+```bash
+cd ~/workspace/cf-release-v0
+git checkout v226
+
+cd ~/workspace/diego-release-v0
+git checkout v0.1442.0
+```
+
+### Update the test configuration
+
+```bash
+cat > config.json <<EOF
+{
+  "override_domain": "bosh-lite.com",
+  "bosh_director_url": "192.168.50.4",
+  "bosh_admin_user": "admin",
+  "bosh_admin_password": "admin",
+  "base_directory": "$HOME/workspace/",
+  "v0_cf_release_path": "[LEGACY CF RELEASE DIR]",
+  "v0_diego_release_path": "[LEGACY DIEGO RELEASE DIR]",
+  "v1_cf_release_path": "[CF RELEASE DIR]",
+  "v1_diego_release_path": "[DIEGO RELEASE DIR]",
+  "max_polling_errors": 1,
+  "aws_stubs_directory": REPLACE_ME,
+  "diego_release_v0_legacy": true,
+  "use_sql_v0": false
+}
+EOF
+export CONFIG=$PWD/config.json
+```
+
+### Run the tests
 
 ```bash
 ginkgo -v
