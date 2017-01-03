@@ -12,7 +12,7 @@ This test suite exercises the upgrade path from the stable CF/Diego configuratio
 # Legacy Releases
 bosh upload release https://bosh.io/d/github.com/cloudfoundry/cf-release?v=247
 bosh upload release https://bosh.io/d/github.com/cloudfoundry/diego-release?v=1.0.0
-bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-runc-release?v=1.0.0
+bosh upload release https://bosh.io/d/github.com/cloudfoundry/garden-runc-release?v=1.0.3
 bosh upload release https://bosh.io/d/github.com/cloudfoundry/cflinuxfs2-rootfs-release?v=1.40.0
 
 # Current Releases
