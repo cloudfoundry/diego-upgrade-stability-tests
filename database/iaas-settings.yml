@@ -55,7 +55,7 @@ iaas_settings:
       reserved:
       - 10.244.34.1
       static:
-      - "10.10.34.2-10.10.34.50"
+      - "10.244.34.2-10.244.34.50"
       cloud_properties: {}
   - name: diego2
     type: manual
@@ -65,7 +65,7 @@ iaas_settings:
       reserved:
       - 10.244.36.1
       static:
-      - "10.10.36.2-10.10.36.50"
+      - "10.244.36.2-10.244.36.50"
       cloud_properties: {}
   - name: diego3
     type: manual
@@ -75,5 +75,5 @@ iaas_settings:
       reserved:
       - 10.244.38.1
       static:
-      - "10.10.38.2-10.10.38.50"
+      - "10.244.38.2-10.244.38.50"
       cloud_properties: {}
