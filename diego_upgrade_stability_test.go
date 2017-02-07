@@ -31,7 +31,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		boshCmd("", "delete deployment cf-warden-diego-brain-and-pals", "")
 		boshCmd("", "delete deployment cf-warden-diego-cell1 --force", "")
 		boshCmd("", "delete deployment cf-warden-diego-cell2 --force", "")
-		boshCmd("", "delete deployment cf-warden-mysql --force", "")
+		boshCmd("", "delete deployment cf-mysql --force", "")
 
 		By("Ensuring the V0 is not currently deployed")
 		deploymentsCmd := bosh("deployments")
@@ -44,7 +44,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		Expect(sess).NotTo(Say("cf-warden-diego-cell1"))
 		Expect(sess).NotTo(Say("cf-warden-diego-cell2"))
 		Expect(sess).NotTo(Say("cf-warden-diego-database"))
-		Expect(sess).NotTo(Say("cf-warden-mysql"))
+		Expect(sess).NotTo(Say("cf-mysql"))
 
 		By("Generating the V0 deployment manifests for 5 piece wise deployments")
 		arguments := []string{
@@ -92,7 +92,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 
 		if config.UseSQLV0 {
 			By("Deploying MySQL")
-			boshCmd("manifests/cf-mysql.yml", "deploy", "Deployed 'cf-warden-mysql'")
+			boshCmd("manifests/cf-mysql.yml", "deploy", "Deployed 'cf-mysql'")
 		}
 
 		By("Deploying Database")
@@ -146,7 +146,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// only deploy mysql if it wasn't deployed in V0
 		if !config.UseSQLV0 {
 			By("Deploying MySQL")
-			boshCmd("manifests/cf-mysql.yml", "deploy", "Deployed 'cf-warden-mysql'")
+			boshCmd("manifests/cf-mysql.yml", "deploy", "Deployed 'cf-mysql'")
 		}
 
 		// Roll CF. This must happen first as it configures ETCD to talk over
