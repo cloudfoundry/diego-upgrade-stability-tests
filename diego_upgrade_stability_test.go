@@ -118,6 +118,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 	AfterEach(func() {
 		By("Test Complete, AfterEach Beginning")
 		ginkgomon.Kill(pollerProcess)
+		Eventually(pollerProcess.Wait()).Should(Receive())
 
 		By("Deleting the Test App")
 		pollerApp.Destroy()
