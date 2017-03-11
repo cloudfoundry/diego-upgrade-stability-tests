@@ -147,7 +147,9 @@ pushd $CF_RELEASE_DIR > /dev/null
     ${CURRENT_DIR}/stubs/disable_router_keepalives.yml \
     ${CF_RELEASE_VERSION_STUB}
 
-  spiff merge bosh-lite/deployments/cf.yml > $OUTPUT_DIR/cf.yml
+  spiff merge bosh-lite/deployments/cf.yml > $TMP_DIR/cf.yml
+  ${CURRENT_DIR}/scripts/add_ha_proxy_resource_pool_to_cf_manifest.rb $TMP_DIR/cf.yml $OUTPUT_DIR/cf.yml
+  rm $TMP_DIR/cf.yml
 
   # mysql-release requires cf.yml to exist in
   # `workspace/cf-release/deployments/cf.yml'. `workspace/cf-release' could be
