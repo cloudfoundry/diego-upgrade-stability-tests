@@ -12,7 +12,7 @@ function usage() {
 
   -d diego release directory location
   -c cf release directory location
-  -l legacy release versions
+  -l legacy runc exclusion
   -o override  domain
   -s use sql
   -a aws credentials directory"
@@ -25,29 +25,17 @@ function generate_component_manifest() {
   # The manifest generation script has changed since the initial stable release
   # so we need to adjust the arguments based on whether we're deploying a new
   # release or v0 (legacy).
-  if [ ${LEGACY_STUBS} = 'false' ]; then
-      ./scripts/generate-deployment-manifest \
-        -c $OUTPUT_DIR/cf.yml \
-        -i $CURRENT_DIR/${component}/iaas-settings.yml \
-        -p $CURRENT_DIR/property-overrides.yml \
-        -n $CURRENT_DIR/${component}/instance-count-overrides.yml \
-        -k manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
-        -v $RELEASE_VERSIONS_STUB \
-        -g \
-        ${SQL_FLAG} \
-        ${NO_ETCD_FLAG} \
-        > $TMP_DIR/${component}.yml
-  else
-    ./scripts/generate-deployment-manifest \
-      $CURRENT_DIR/property-overrides.yml \
-      $CURRENT_DIR/${component}/instance-count-overrides.yml \
-      manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
-      $CURRENT_DIR/${component}/iaas-settings.yml \
-      manifest-generation/bosh-lite-stubs/additional-jobs.yml \
-      $RELEASE_VERSIONS_STUB \
-      $OUTPUT_DIR \
-      > $TMP_DIR/${component}.yml
-  fi
+  ./scripts/generate-deployment-manifest \
+    -c $OUTPUT_DIR/cf.yml \
+    -i $CURRENT_DIR/${component}/iaas-settings.yml \
+    -p $CURRENT_DIR/property-overrides.yml \
+    -n $CURRENT_DIR/${component}/instance-count-overrides.yml \
+    -k manifest-generation/bosh-lite-stubs/persistent-disk-overrides.yml \
+    -v $RELEASE_VERSIONS_STUB \
+    ${GARDEN_RUNC_FLAG} \
+    ${SQL_FLAG} \
+    ${NO_ETCD_FLAG} \
+    > $TMP_DIR/${component}.yml
 
   spiff merge $TMP_DIR/${component}.yml $CURRENT_DIR/${component}/deployment-name.yml $CURRENT_DIR/stubs/disable_reuse_compilation_vms.yml $CF_RELEASE_VERSION_STUB > $OUTPUT_DIR/${component}.yml
 
@@ -57,12 +45,12 @@ function generate_component_manifest() {
 scripts_path=$(absolute_path `dirname $0`)
 
 DEPLOYING_Z0=false
-LEGACY_STUBS=false
 CURRENT_DIR=$(absolute_path $scripts_path/..)
 CF_RELEASE_VERSION_STUB=""
 
 SQL_FLAG=""
 NO_ETCD_FLAG=""
+GARDEN_RUNC_FLAG='-g'
 while getopts "d:c:o:rlxsa:z" opt; do
   case $opt in
     z)
@@ -82,8 +70,8 @@ while getopts "d:c:o:rlxsa:z" opt; do
       echo 'Overriding  with ${OVERRIDE_DOMAIN}'
       ;;
     l)
-      echo 'Using misc-stubs/legacy-releases.yml for legacy versioned releases'
-      LEGACY_STUBS=true
+      echo 'Not using non-existent -g flag'
+      GARDEN_RUNC_FLAG=""
       ;;
     x)
       # temporarily adding -x before its behavior becomes the default and we can remove this
