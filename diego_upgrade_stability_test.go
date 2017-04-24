@@ -117,7 +117,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 
 	AfterEach(func() {
 		By("Test Complete, AfterEach Beginning")
-		ginkgomon.Kill(pollerProcess)
+		ShutdownPoller(pollerProcess, os.Kill)
 		Eventually(pollerProcess.Wait()).Should(Receive())
 
 		By("Deleting the Test App")
@@ -156,7 +156,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// ************************************************************ //
 		// UPGRADE CF
 		By("Upgrading CF")
-		ginkgomon.Kill(pollerProcess)
+		ShutdownPoller(pollerProcess, os.Kill)
 		boshCmd("manifests/cf.yml", "deploy", "Deployed 'cf-warden'")
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
@@ -186,7 +186,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// UPGRADE D3
 		By("Upgrading Cell 1")
 		boshCmd("manifests/cell1.yml", "deploy --recreate", "Deployed 'cf-warden-diego-cell1'")
-		ginkgomon.Kill(pollerProcess)
+		ShutdownPoller(pollerProcess, os.Kill)
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
 		// AFTER UPGRADING D3, PRESERVE OLD DEPLOYMENT AND STOP D4
@@ -195,7 +195,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		boshCmd("", "download manifest cf-warden-diego-cell2 manifests/legacy-cell-2.yml", `Deployment manifest saved to .manifests\/legacy-cell-2.yml'`)
 		boshCmd("manifests/legacy-cell-2.yml", "stop cell_z2", `cell_z2\/.* stopped, VM\(s\) still running`)
 		boshCmd("manifests/legacy-cell-2.yml", "delete deployment cf-warden-diego-cell2 --force", "Deleted deployment 'cf-warden-diego-cell2'")
-		ginkgomon.Kill(pollerProcess)
+		ShutdownPoller(pollerProcess, os.Kill)
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
 		By("Running Smoke Tests #3")
@@ -226,7 +226,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		By("Stopping Cell 1")
 		boshCmd("manifests/cell1.yml", "stop cell_z1", `cell_z1\/.* stopped, VM\(s\) still running`)
 		boshCmd("manifests/cell1.yml", "delete deployment cf-warden-diego-cell1 --force", "Deleted deployment 'cf-warden-diego-cell1'")
-		ginkgomon.Kill(pollerProcess)
+		ShutdownPoller(pollerProcess, os.Kill)
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
 		By("Running Smoke Tests #4")
@@ -246,7 +246,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		// UPGRADE D4
 		By("Upgrading Cell 2")
 		boshCmd("manifests/cell2.yml", "deploy --recreate", "Deployed 'cf-warden-diego-cell2'")
-		ginkgomon.Kill(pollerProcess)
+		ShutdownPoller(pollerProcess, os.Kill)
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
 		By("Running Smoke Tests #5")

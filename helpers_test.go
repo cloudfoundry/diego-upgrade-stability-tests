@@ -1,6 +1,7 @@
 package upgrade_test
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -152,18 +153,32 @@ func (testApp *cfApp) NewPoller() ifrit.RunFunc {
 			select {
 			case <-curlTimer.C:
 				_, err := testApp.Curl("id")
-				Expect(err).NotTo(HaveOccurred(), "continuous polling failed")
-
+				if err != nil {
+					By(fmt.Sprintf("Continuous Polling Failed: %s", err.Error()))
+				}
 				curlTimer.Reset(2 * time.Second)
 
 			case <-signals:
-				By(fmt.Sprintf("exiting continuous test poller (%d failed curl requests / %d attempted curl requests)\n", testApp.failedCurls, testApp.attemptedCurls))
+				var err error
+				msg := fmt.Sprintf("exiting continuous test poller (%d failed curl requests / %d attempted curl requests)\n", testApp.failedCurls, testApp.attemptedCurls)
+				By(msg)
+				fmt.Println(msg)
+				if testApp.failedCurls > 0 {
+					err = errors.New(msg)
+				}
 				testApp.attemptedCurls = 0
 				testApp.failedCurls = 0
-				return nil
+				return err
 			}
 		}
 	}
+}
+
+func ShutdownPoller(process ifrit.Process, signal os.Signal) {
+	process.Signal(signal)
+	var err error
+	Eventually(process.Wait()).Should(Receive(&err))
+	Expect(err).NotTo(HaveOccurred())
 }
 
 func (a *cfApp) Curl(endpoint string) (string, error) {
