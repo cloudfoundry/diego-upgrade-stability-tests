@@ -284,6 +284,7 @@ property_overrides:
       QByXVUoXMbBBtmUyhVTizXhpNBP2dELMk+NVdnVWHCiGTtBAUTpk
       -----END RSA PRIVATE KEY-----
   bbs:
+    log_level: debug
     active_key_label: key1
     encryption_keys:
       - label: key1
@@ -433,6 +434,7 @@ property_overrides:
       BSgiGpK7DUMYgC6mggfL8bPrhWG3B39Q+VC8B6K/Y29xe8HZQThhick=
       -----END RSA PRIVATE KEY-----
   locket:
+    log_level: debug
     tls:
       ca_cert: |
         -----BEGIN CERTIFICATE-----
@@ -728,6 +730,7 @@ property_overrides:
     log_level: debug
   skip_cert_verify: true
   ssh_proxy:
+    log_level: debug
     host_key: |
       -----BEGIN RSA PRIVATE KEY-----
       MIIEhgIBAAKB/DMF5qOW+fh608KhX7qBLNHHmfzCfOONd176Oaf8rGht5KdnoNge
@@ -760,6 +763,7 @@ property_overrides:
     enable_diego_auth: true
     diego_credentials: "bosh-lite-ssh-secret"
   auctioneer:
+    log_level: debug
     ca_cert: |
       -----BEGIN CERTIFICATE-----
       MIIE5DCCAsygAwIBAgIBATANBgkqhkiG9w0BAQsFADASMRAwDgYDVQQDEwdkaWVn
