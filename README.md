@@ -108,7 +108,7 @@ ginkgo -v
 
 ```bash
 # Legacy Releases
-bosh upload release https://bosh.io/d/github.com/cloudfoundry/cf-release?v=233
+bosh upload release https://bosh.io/d/github.com/cloudfoundry/cf-release?v=241
 bosh upload release https://bosh.io/d/github.com/cloudfoundry/diego-release?v=0.1460.0
 bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release?v=0.328.0
 bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/etcd-release?v=38
@@ -126,7 +126,7 @@ The desired versions of each release should be checked out.
 
 ```bash
 cd ~/workspace/cf-release-v0
-git checkout v233
+git checkout v241
 
 cd ~/workspace/diego-release-v0
 git checkout v0.1460.0
