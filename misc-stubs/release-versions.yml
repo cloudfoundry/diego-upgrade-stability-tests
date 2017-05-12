@@ -1,4 +1,4 @@
 release_versions:
   diego: 0.1460.0
   garden-linux: 0.328.0
-  etcd: 38
+  etcd: 66

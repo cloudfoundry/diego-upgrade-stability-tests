@@ -111,7 +111,7 @@ ginkgo -v
 bosh upload release https://bosh.io/d/github.com/cloudfoundry/cf-release?v=241
 bosh upload release https://bosh.io/d/github.com/cloudfoundry/diego-release?v=0.1460.0
 bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release?v=0.328.0
-bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/etcd-release?v=38
+bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/etcd-release?v=66
 
 # Current Releases
 bosh upload release https://bosh.io/d/github.com/cloudfoundry/garden-runc-release
