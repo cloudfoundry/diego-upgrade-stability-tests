@@ -102,14 +102,14 @@ Run the test suite by invoking the ginkgo CLI from the root of this repository:
 ginkgo -v
 ```
 
-### Changes for diego-release v0.1460.0
+### Changes for diego-release v0.1483.0
 
 ### Upload the necessary legacy releases to your bosh-lite
 
 ```bash
 # Legacy Releases
 bosh upload release https://bosh.io/d/github.com/cloudfoundry/cf-release?v=241
-bosh upload release https://bosh.io/d/github.com/cloudfoundry/diego-release?v=0.1460.0
+bosh upload release https://bosh.io/d/github.com/cloudfoundry/diego-release?v=0.1483.0
 bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release?v=0.328.0
 bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/etcd-release?v=66
 
@@ -129,7 +129,7 @@ cd ~/workspace/cf-release-v0
 git checkout v241
 
 cd ~/workspace/diego-release-v0
-git checkout v0.1460.0
+git checkout v0.1483.0
 ```
 
 ### Update the test configuration
