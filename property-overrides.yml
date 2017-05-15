@@ -57,6 +57,7 @@ property_overrides:
         t+cBZNo15m+C9sMtX1r5r8wXnm1BAG/aqNXfg0TxtuEgu15gldZk
         -----END RSA PRIVATE KEY-----
   etcd:
+    advertise_urls_dns_prefix: cf-etcd.service.cf.internal
     require_ssl: true
     peer_require_ssl: true
     ca_cert: |
