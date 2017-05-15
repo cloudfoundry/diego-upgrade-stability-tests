@@ -8,11 +8,10 @@ absolute_path() {
 
 function usage() {
   >&2 echo "
-  Usage: $0 -d DIEGO_RELEASE_DIR -c CF_RELEASE_DIR -o OVERRIDE_DOMAIN (-l -a -s)
+  Usage: $0 -d DIEGO_RELEASE_DIR -c CF_RELEASE_DIR -o OVERRIDE_DOMAIN (-a -s)
 
   -d diego release directory location
   -c cf release directory location
-  -l legacy runc exclusion
   -o override  domain
   -s use sql
   -a aws credentials directory"
@@ -51,7 +50,7 @@ CF_RELEASE_VERSION_STUB=""
 SQL_FLAG=""
 NO_ETCD_FLAG=""
 GARDEN_RUNC_FLAG='-g'
-while getopts "d:c:o:rlxsa:z" opt; do
+while getopts "d:c:o:rxsa:z" opt; do
   case $opt in
     z)
       DEPLOYING_Z0=true
@@ -68,10 +67,6 @@ while getopts "d:c:o:rlxsa:z" opt; do
     o)
       OVERRIDE_DOMAIN=$OPTARG
       echo 'Overriding  with ${OVERRIDE_DOMAIN}'
-      ;;
-    l)
-      echo 'Not using non-existent -g flag'
-      GARDEN_RUNC_FLAG=""
       ;;
     x)
       # temporarily adding -x before its behavior becomes the default and we can remove this
