@@ -15,6 +15,7 @@ Bundler.require :default, ENV['RACK_ENV'].to_sym
 
 $stdout.sync = true
 $stderr.sync = true
+$counter = 0
 
 class Dora < Sinatra::Base
   use Instances
@@ -26,12 +27,36 @@ class Dora < Sinatra::Base
     "Hi, I'm Dora!"
   end
 
+  get '/health' do
+    $stderr.puts("Called /health #{$counter}")
+    if $counter < 3
+      $counter += 1
+     status 500
+     body "Hit /health #{$counter} times"
+    else
+      "I'm alive"
+    end
+  end
+
+  get '/ping/:address' do
+    `ping -c 4 #{params[:address]}`
+  end
+
+  get '/lsb_release' do
+    `lsb_release --all`
+  end
+
   get '/find/:filename' do
     `find / -name #{params[:filename]}`
   end
 
   get '/sigterm' do
     "Available sigterms #{`man -k signal | grep list`}"
+  end
+
+  get '/dpkg/:package' do
+    puts "Sending dpkg output for #{params[:package]}"
+    `dpkg -l #{params[:package]}`
   end
 
   get '/delay/:seconds' do
@@ -77,7 +102,17 @@ class Dora < Sinatra::Base
   end
 
   get '/myip' do
-    `ip addr show  | grep w- | grep inet | awk '{print $2}'`
+    `ip route get 1 | awk '{print $NF;exit}'`
+  end
+
+  get '/largetext/:kbytes' do
+    fiveMB = 5 * 1024
+    numKB = params[:kbytes].to_i
+    ktext="1" * 1024
+    text=""
+    size = numKB > fiveMB ? fiveMB : numKB
+    size.times {text+=ktext}
+    text
   end
 
   run! if app_file == $0
