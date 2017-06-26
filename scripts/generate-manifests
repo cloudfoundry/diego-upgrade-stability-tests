@@ -21,9 +21,6 @@ function usage() {
 function generate_component_manifest() {
   component=$1
 
-  # The manifest generation script has changed since the initial stable release
-  # so we need to adjust the arguments based on whether we're deploying a new
-  # release or v0 (legacy).
   ./scripts/generate-deployment-manifest \
     -c $OUTPUT_DIR/cf.yml \
     -i $CURRENT_DIR/${component}/iaas-settings.yml \
