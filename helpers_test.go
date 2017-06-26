@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -22,9 +23,10 @@ import (
 )
 
 const (
-	CFUser          = "admin"
-	CFPassword      = "admin"
-	AppRoutePattern = "http://%s.%s"
+	CFUser              = "admin"
+	CFPassword          = "admin"
+	AppRoutePattern     = "http://%s.%s"
+	DoraPathInCFRelease = "src/github.com/cloudfoundry/cf-acceptance-tests/assets/dora/"
 )
 
 func boshCmd(manifest, action, completeMsg string) {
@@ -40,10 +42,10 @@ func boshCmd(manifest, action, completeMsg string) {
 	Expect(sess).To(gbytes.Say(completeMsg))
 }
 
-func smokeTestDiego() {
+func smokeTestDiego(cfReleasePath string) {
 	smokeTestApp := newCfApp("smoke-test", 0)
 	// push new app
-	smokeTestApp.Push()
+	smokeTestApp.Push(cfReleasePath)
 
 	// destroy after test finishes
 	defer smokeTestApp.Destroy()
@@ -83,7 +85,7 @@ func newCfApp(appNamePrefix string, maxFailedCurls int) *cfApp {
 	}
 }
 
-func (a *cfApp) Push() {
+func (a *cfApp) Push(cfReleasePath string) {
 	// create org and space
 	Eventually(func() int {
 		return cf.Cf("login", "-a", "api."+config.OverrideDomain, "-u", CFUser, "-p", CFPassword, "--skip-ssl-validation").Wait().ExitCode()
@@ -94,7 +96,7 @@ func (a *cfApp) Push() {
 	Eventually(cf.Cf("target", "-s", a.spaceName)).Should(gexec.Exit(0))
 
 	// push app
-	Eventually(cf.Cf("push", a.appName, "-p", "dora", "-i", "1", "-b", "ruby_buildpack"), 5*time.Minute).Should(gexec.Exit(0))
+	Eventually(cf.Cf("push", a.appName, "-p", filepath.Join(config.BaseReleaseDirectory, cfReleasePath, DoraPathInCFRelease), "-i", "1", "-b", "ruby_buildpack"), 5*time.Minute).Should(gexec.Exit(0))
 	Eventually(cf.Cf("logs", a.appName, "--recent")).Should(gbytes.Say("[HEALTH/0]"))
 	curlAppMain := func() string {
 		response, err := a.Curl("")

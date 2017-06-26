@@ -105,7 +105,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 
 		By("Deploying a Test App")
 		pollerApp = newCfApp("test-app", config.MaxPollingErrors)
-		pollerApp.Push()
+		pollerApp.Push(config.V0CfReleasePath)
 
 		By("Continuously Polling the Test Application")
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
@@ -157,7 +157,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
 		By("Running Smoke Tests #1")
-		smokeTestDiego()
+		smokeTestDiego(config.V0CfReleasePath)
 
 		By("Scaling Test App #1")
 		pollerApp.Scale(2)
@@ -170,7 +170,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		boshCmd("manifests/database.yml", "deploy", "Deployed 'cf-warden-diego-database'")
 
 		By("Running Smoke Tests #2")
-		smokeTestDiego()
+		smokeTestDiego(config.V0CfReleasePath)
 
 		By("Scaling Test App #2")
 		pollerApp.Scale(2)
@@ -195,7 +195,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
 		By("Running Smoke Tests #3")
-		smokeTestDiego()
+		smokeTestDiego(config.V0CfReleasePath)
 
 		By("Scaling Test App #3")
 		pollerApp.Scale(2)
@@ -226,7 +226,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
 		By("Running Smoke Tests #4")
-		smokeTestDiego()
+		smokeTestDiego(config.V1CfReleasePath)
 
 		By("Scaling Test App #4")
 		pollerApp.Scale(2)
@@ -246,7 +246,7 @@ var _ = Describe("Upgrade Stability Tests", func() {
 		pollerProcess = ginkgomon.Invoke(pollerApp.NewPoller())
 
 		By("Running Smoke Tests #5")
-		smokeTestDiego()
+		smokeTestDiego(config.V1CfReleasePath)
 
 		By("Scaling Test App #5")
 		pollerApp.Scale(2)
