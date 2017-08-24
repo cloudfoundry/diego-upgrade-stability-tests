@@ -5,3 +5,15 @@ jobs:
   instances: 0
 - name: blobstore_z1
   instances: 0
+- name: loggregator_trafficcontroller_z1
+  instance: 0
+- name: loggregator_trafficcontroller_z2
+  instance: 0
+- name: loggregator_z1
+  instances: 0
+- name: loggregator_z2
+  instances: 0
+- name: doppler_z1
+  instances: 0
+- name: doppler_z2
+  instances: 0

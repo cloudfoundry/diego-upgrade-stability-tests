@@ -31,15 +31,15 @@ jobs:
 - name: runner_z2
   instances: 0
 - name: loggregator_z1
-  instances: 0
+  instances: 1
 - name: loggregator_z2
   instances: 0
 - name: doppler_z1
-  instances: 0
+  instances: 1
 - name: doppler_z2
   instances: 0
 - name: loggregator_trafficcontroller_z1
-  instances: 0
+  instances: 1
 - name: loggregator_trafficcontroller_z2
   instances: 0
 - name: router_z1

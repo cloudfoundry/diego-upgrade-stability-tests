@@ -9,6 +9,7 @@ jobs:
 - name: runner_z2
   instances: 0
 - name: loggregator_trafficcontroller_z1
+  instances: (( merge || 0 ))
   properties:
     route_registrar:
       routes:

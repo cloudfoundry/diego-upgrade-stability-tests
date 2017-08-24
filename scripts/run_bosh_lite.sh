@@ -91,7 +91,7 @@ export PATH=$base_directory/bin:$PATH
 
 cat > $base_directory/dusts_config.json <<EOF
 {
-  "bosh_director_url": "192.168.50.4",
+  "bosh_director_url": "192.168.50.6",
   "bosh_admin_user": "${BOSH_USER}",
   "bosh_admin_password": "${BOSH_PASSWORD}",
   "base_directory": "${base_directory}",
