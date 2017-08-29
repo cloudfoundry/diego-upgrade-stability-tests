@@ -1,3 +1,5 @@
 releases:
 - name: cf
   version: 241
+- name: postgres
+  version: 18
