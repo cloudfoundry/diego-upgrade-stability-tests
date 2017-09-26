@@ -128,7 +128,13 @@ pushd $CF_RELEASE_DIR > /dev/null
     ${CF_RELEASE_VERSION_STUB}
 
   spiff merge bosh-lite/deployments/cf.yml > $TMP_DIR/cf.yml
-  ${CURRENT_DIR}/scripts/add_ha_proxy_resource_pool_to_cf_manifest.rb $TMP_DIR/cf.yml $OUTPUT_DIR/cf.yml
+  ${CURRENT_DIR}/scripts/add_ha_proxy_resource_pool_to_cf_manifest.rb $TMP_DIR/cf.yml $TMP_DIR/cf.yml
+  # the cf-release manifest now requires a doppler to be present due to the way
+  # the manifest is generated. The cf/no-api.yml does not override the instance
+  # count of doppler_z1. Instead, the following script will set the instance
+  # count to 0 and remove the network static ips after the manifest has been
+  # generated.
+  ${CURRENT_DIR}/scripts/remove_doppler_z1.rb $TMP_DIR/cf.yml $OUTPUT_DIR/cf.yml
   rm $TMP_DIR/cf.yml
 
   # mysql-release requires cf.yml to exist in
