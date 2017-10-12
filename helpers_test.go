@@ -136,7 +136,8 @@ func (a *cfApp) VerifySsh(instanceIndex int) {
 	Expect(string(output)).To(MatchRegexp(fmt.Sprintf(`VCAP_APPLICATION=.*"application_name":"%s"`, a.appName)))
 	Expect(string(output)).To(MatchRegexp(fmt.Sprintf("INSTANCE_INDEX=%d", instanceIndex)))
 
-	Eventually(cf.Cf("logs", a.appName, "--recent")).Should(gbytes.Say("Successful remote access"))
+	logs := func() *gexec.Session { return cf.Cf("logs", a.appName, "--recent").Wait() }
+	Eventually(logs).Should(gbytes.Say("Successful remote access"))
 	Eventually(cf.Cf("events", a.appName)).Should(gbytes.Say("audit.app.ssh-authorized"))
 }
 
