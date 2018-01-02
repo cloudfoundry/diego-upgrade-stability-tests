@@ -52,6 +52,16 @@ jobs:
   instances: 0
 - name: smoke_tests
   instances: 0
+properties:
+  cc:
+    diego:
+      temporary_local_staging: false
+      temporary_local_tasks: false
+      temporary_local_apps: false
+      temporary_local_sync: false
+      temporary_local_tps: false
+      temporary_cc_uploader_mtls: false
+      temporary_droplet_download_mtls: false
 networks:
 - name: cf1
   type: manual
