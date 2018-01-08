@@ -23,20 +23,7 @@ var _ = Describe("Dusts", func() {
 		)
 
 		BeforeEach(func() {
-			// required since vizzini makes assumption about the port of file server being 8080
-			fileServer, fileServerAssetsDir := ComponentMakerV1.FileServer()
-
-			buildpackAppLifeCycleDir := filepath.Join(fileServerAssetsDir, "buildpack_app_lifecycle")
-			err := os.Mkdir(buildpackAppLifeCycleDir, 0755)
-			Expect(err).NotTo(HaveOccurred())
-			file := ComponentMakerV1.Artifacts.Lifecycles["buildpackapplifecycle"]
-			helpers.Copy(file, filepath.Join(buildpackAppLifeCycleDir, "buildpack_app_lifecycle.tgz"))
-
-			dockerAppLifeCycleDir := filepath.Join(fileServerAssetsDir, "docker_app_lifecycle")
-			err = os.Mkdir(dockerAppLifeCycleDir, 0755)
-			Expect(err).NotTo(HaveOccurred())
-			file = ComponentMakerV1.Artifacts.Lifecycles["dockerapplifecycle"]
-			helpers.Copy(file, filepath.Join(dockerAppLifeCycleDir, "docker_app_lifecycle.tgz"))
+			fileServer, _ := ComponentMakerV1.FileServer()
 
 			exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
 				cfg.ExportNetworkEnvVars = true
@@ -62,7 +49,7 @@ var _ = Describe("Dusts", func() {
 				})},
 			}))
 
-			helpers.ConsulWaitUntilReady(ComponentMakerV1.Addresses)
+			helpers.ConsulWaitUntilReady(ComponentMakerV1.Addresses())
 			logger = lager.NewLogger("test")
 			logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
 
@@ -85,8 +72,6 @@ var _ = Describe("Dusts", func() {
 		It("runs vizzini succesfully", func() {
 			ip, err := localip.LocalIP()
 			Expect(err).NotTo(HaveOccurred())
-			// routerHost, routerPort, err := net.SplitHostPort(componentMaker.Addresses.Router)
-			// Expect(err).NotTo(HaveOccurred())
 			vizziniPath := filepath.Join(os.Getenv("GOPATH"), "src/code.cloudfoundry.org/vizzini")
 			flags := []string{
 				"-nodes", "2", // run ginkgo in parallel
@@ -94,10 +79,10 @@ var _ = Describe("Dusts", func() {
 				"-r",
 				"-slowSpecThreshold", "10", // set threshold to 10s
 				"--",
-				"-bbs-address", "https://" + ComponentMakerV1.Addresses.BBS,
-				"-bbs-client-cert", ComponentMakerV1.BbsSSL.ClientCert,
-				"-bbs-client-key", ComponentMakerV1.BbsSSL.ClientKey,
-				"-ssh-address", ComponentMakerV1.Addresses.SSHProxy,
+				"-bbs-address", "https://" + ComponentMakerV1.Addresses().BBS,
+				"-bbs-client-cert", ComponentMakerV1.BBSSSLConfig().ClientCert,
+				"-bbs-client-key", ComponentMakerV1.BBSSSLConfig().ClientKey,
+				"-ssh-address", ComponentMakerV1.Addresses().SSHProxy,
 				"-ssh-password", "",
 				"-routable-domain-suffix", ip + ".xip.io",
 				"-host-address", ip,

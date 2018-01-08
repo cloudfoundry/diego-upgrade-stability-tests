@@ -13,7 +13,6 @@ import (
 	"code.cloudfoundry.org/bbs/serviceclient"
 	"code.cloudfoundry.org/consuladapter/consulrunner"
 	"code.cloudfoundry.org/garden"
-	"code.cloudfoundry.org/inigo/helpers"
 	"code.cloudfoundry.org/inigo/world"
 	"code.cloudfoundry.org/lager"
 	. "github.com/onsi/ginkgo"
@@ -70,7 +69,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	err := json.Unmarshal(payload, &artifacts)
 	Expect(err).NotTo(HaveOccurred())
 
-	_, dbBaseConnectionString := helpers.DBInfo()
+	_, dbBaseConnectionString := world.DBInfo()
 
 	// TODO: the hard coded addresses for router and file server prevent running multiple dusts tests at the same time
 	addresses := world.ComponentAddresses{
@@ -91,10 +90,10 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		SQL:                 fmt.Sprintf("%sdiego_%d", dbBaseConnectionString, config.GinkgoConfig.ParallelNode),
 	}
 
-	ComponentMakerV0 = helpers.MakeComponentMaker("fixtures/certs/", artifacts["old"], addresses)
+	ComponentMakerV0 = world.MakeV0ComponentMaker("fixtures/certs/", artifacts["old"], addresses)
 	ComponentMakerV0.Setup()
 
-	ComponentMakerV1 = helpers.MakeComponentMaker("fixtures/certs/", artifacts["new"], addresses)
+	ComponentMakerV1 = world.MakeComponentMaker("fixtures/certs/", artifacts["new"], addresses)
 	ComponentMakerV1.Setup()
 })
 
@@ -112,22 +111,22 @@ func CompileTestedExecutablesV1() world.BuiltExecutables {
 	builtExecutables["garden"], err = gexec.BuildIn(os.Getenv("GARDEN_GOPATH"), "code.cloudfoundry.org/guardian/cmd/gdn", "-race", "-a", "-tags", "daemon")
 	Expect(err).NotTo(HaveOccurred())
 
-	builtExecutables["auctioneer"], err = gexec.BuildIn(os.Getenv("AUCTIONEER_GOPATH_V1"), "code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
+	builtExecutables["auctioneer"], err = gexec.BuildIn(os.Getenv("AUCTIONEER_GOPATH"), "code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
-	builtExecutables["rep"], err = gexec.BuildIn(os.Getenv("REP_GOPATH_V1"), "code.cloudfoundry.org/rep/cmd/rep", "-race")
+	builtExecutables["rep"], err = gexec.BuildIn(os.Getenv("REP_GOPATH"), "code.cloudfoundry.org/rep/cmd/rep", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
-	builtExecutables["bbs"], err = gexec.BuildIn(os.Getenv("BBS_GOPATH_V1"), "code.cloudfoundry.org/bbs/cmd/bbs", "-race")
+	builtExecutables["bbs"], err = gexec.BuildIn(os.Getenv("BBS_GOPATH"), "code.cloudfoundry.org/bbs/cmd/bbs", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
-	builtExecutables["locket"], err = gexec.BuildIn(os.Getenv("LOCKET_GOPATH_V1"), "code.cloudfoundry.org/locket/cmd/locket", "-race")
+	builtExecutables["locket"], err = gexec.BuildIn(os.Getenv("LOCKET_GOPATH"), "code.cloudfoundry.org/locket/cmd/locket", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
-	builtExecutables["file-server"], err = gexec.BuildIn(os.Getenv("FILE_SERVER_GOPATH_V1"), "code.cloudfoundry.org/fileserver/cmd/file-server", "-race")
+	builtExecutables["file-server"], err = gexec.BuildIn(os.Getenv("FILE_SERVER_GOPATH"), "code.cloudfoundry.org/fileserver/cmd/file-server", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
-	builtExecutables["route-emitter"], err = gexec.BuildIn(os.Getenv("ROUTE_EMITTER_GOPATH_V1"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
+	builtExecutables["route-emitter"], err = gexec.BuildIn(os.Getenv("ROUTE_EMITTER_GOPATH"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
 	builtExecutables["router"], err = gexec.BuildIn(os.Getenv("ROUTER_GOPATH"), "code.cloudfoundry.org/gorouter", "-race")
@@ -136,11 +135,11 @@ func CompileTestedExecutablesV1() world.BuiltExecutables {
 	builtExecutables["routing-api"], err = gexec.BuildIn(os.Getenv("ROUTING_API_GOPATH"), "code.cloudfoundry.org/routing-api/cmd/routing-api", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
-	builtExecutables["ssh-proxy"], err = gexec.BuildIn(os.Getenv("SSH_PROXY_GOPATH_V1"), "code.cloudfoundry.org/diego-ssh/cmd/ssh-proxy", "-race")
+	builtExecutables["ssh-proxy"], err = gexec.BuildIn(os.Getenv("SSH_PROXY_GOPATH"), "code.cloudfoundry.org/diego-ssh/cmd/ssh-proxy", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
 	os.Setenv("CGO_ENABLED", "0")
-	builtExecutables["sshd"], err = gexec.BuildIn(os.Getenv("SSHD_GOPATH_V1"), "code.cloudfoundry.org/diego-ssh/cmd/sshd", "-a", "-installsuffix", "static")
+	builtExecutables["sshd"], err = gexec.BuildIn(os.Getenv("SSHD_GOPATH"), "code.cloudfoundry.org/diego-ssh/cmd/sshd", "-a", "-installsuffix", "static")
 	os.Unsetenv("CGO_ENABLED")
 	Expect(err).NotTo(HaveOccurred())
 
@@ -152,23 +151,7 @@ func CompileTestedExecutablesV0() world.BuiltExecutables {
 
 	builtExecutables := world.BuiltExecutables{}
 
-	// keeping file-server, router, routing-api, and garden at v1 with the initial start
-	builtExecutables["router"], err = gexec.BuildIn(os.Getenv("ROUTER_GOPATH"), "code.cloudfoundry.org/gorouter", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
-	builtExecutables["routing-api"], err = gexec.BuildIn(os.Getenv("ROUTING_API_GOPATH"), "code.cloudfoundry.org/routing-api/cmd/routing-api", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
-	builtExecutables["garden"], err = gexec.BuildIn(os.Getenv("GARDEN_GOPATH"), "code.cloudfoundry.org/guardian/cmd/gdn", "-race", "-a", "-tags", "daemon")
-	Expect(err).NotTo(HaveOccurred())
-
-	builtExecutables["locket"], err = gexec.BuildIn(os.Getenv("LOCKET_GOPATH_V1"), "code.cloudfoundry.org/locket/cmd/locket", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
 	// compiling v0 version of diego components
-	builtExecutables["file-server"], err = gexec.BuildIn(os.Getenv("FILE_SERVER_GOPATH_V0"), "code.cloudfoundry.org/fileserver/cmd/file-server", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
 	builtExecutables["auctioneer"], err = gexec.BuildIn(os.Getenv("AUCTIONEER_GOPATH_V0"), "code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
@@ -179,9 +162,6 @@ func CompileTestedExecutablesV0() world.BuiltExecutables {
 	Expect(err).NotTo(HaveOccurred())
 
 	builtExecutables["route-emitter"], err = gexec.BuildIn(os.Getenv("ROUTE_EMITTER_GOPATH_V0"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
-	builtExecutables["ssh-proxy"], err = gexec.BuildIn(os.Getenv("SSH_PROXY_GOPATH_V0"), "code.cloudfoundry.org/diego-ssh/cmd/ssh-proxy", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
 	os.Setenv("CGO_ENABLED", "0")
@@ -223,7 +203,7 @@ func CompileHealthcheckExecutableV0() string {
 
 func CompileHealthcheckExecutableV1() string {
 	healthcheckDir := world.TempDir("healthcheck")
-	healthcheckPath, err := gexec.BuildIn(os.Getenv("HEALTHCHECK_GOPATH_V1"), "code.cloudfoundry.org/healthcheck/cmd/healthcheck", "-race")
+	healthcheckPath, err := gexec.BuildIn(os.Getenv("HEALTHCHECK_GOPATH"), "code.cloudfoundry.org/healthcheck/cmd/healthcheck", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
 	err = os.Rename(healthcheckPath, filepath.Join(healthcheckDir, "healthcheck"))

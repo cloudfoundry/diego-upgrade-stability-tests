@@ -41,20 +41,7 @@ var _ = Describe("RollingUpgrade", func() {
 		)
 
 		BeforeEach(func() {
-			// required since vizzini makes assumption about the port of file server being 8080
-			fileServer, fileServerAssetsDir := ComponentMakerV0.LegacyFileServer()
-
-			buildpackAppLifeCycleDir := filepath.Join(fileServerAssetsDir, "buildpack_app_lifecycle")
-			err := os.Mkdir(buildpackAppLifeCycleDir, 0755)
-			Expect(err).NotTo(HaveOccurred())
-			file := ComponentMakerV0.Artifacts.Lifecycles["buildpackapplifecycle"]
-			helpers.Copy(file, filepath.Join(buildpackAppLifeCycleDir, "buildpack_app_lifecycle.tgz"))
-
-			dockerAppLifeCycleDir := filepath.Join(fileServerAssetsDir, "docker_app_lifecycle")
-			err = os.Mkdir(dockerAppLifeCycleDir, 0755)
-			Expect(err).NotTo(HaveOccurred())
-			file = ComponentMakerV0.Artifacts.Lifecycles["dockerapplifecycle"]
-			helpers.Copy(file, filepath.Join(dockerAppLifeCycleDir, "docker_app_lifecycle.tgz"))
+			fileServer, fileServerAssetsDir := ComponentMakerV1.FileServer()
 
 			archiveFiles = fixtures.GoServerApp()
 			archive_helper.CreateZipArchive(
@@ -64,22 +51,22 @@ var _ = Describe("RollingUpgrade", func() {
 
 			dependencies = ginkgomon.Invoke(grouper.NewOrdered(os.Kill, grouper.Members{
 				{"dependencies", grouper.NewParallel(os.Kill, grouper.Members{
-					{"nats", ComponentMakerV0.NATS()},
-					{"sql", ComponentMakerV0.SQL()},
-					{"consul", ComponentMakerV0.Consul()},
+					{"nats", ComponentMakerV1.NATS()},
+					{"sql", ComponentMakerV1.SQL()},
+					{"consul", ComponentMakerV1.Consul()},
 					{"file-server", fileServer},
-					{"garden", ComponentMakerV0.Garden()},
-					{"router", ComponentMakerV0.Router()},
+					{"garden", ComponentMakerV1.Garden()},
+					{"router", ComponentMakerV1.Router()},
 				})},
 			}))
 
-			bbs = ginkgomon.Invoke(ComponentMakerV0.LegacyBBS())
-			routeEmitter = ginkgomon.Invoke(ComponentMakerV0.LegacyRouteEmitter())
-			auctioneer = ginkgomon.Invoke(ComponentMakerV0.LegacyAuctioneer())
-			rep0 = ginkgomon.Invoke(ComponentMakerV0.LegacyRepN(0))
-			rep1 = ginkgomon.Invoke(ComponentMakerV0.LegacyRepN(1))
+			bbs = ginkgomon.Invoke(ComponentMakerV0.BBS())
+			routeEmitter = ginkgomon.Invoke(ComponentMakerV0.RouteEmitter())
+			auctioneer = ginkgomon.Invoke(ComponentMakerV0.Auctioneer())
+			rep0 = ginkgomon.Invoke(ComponentMakerV0.RepN(0))
+			rep1 = ginkgomon.Invoke(ComponentMakerV0.RepN(1))
 
-			helpers.ConsulWaitUntilReady(ComponentMakerV0.Addresses)
+			helpers.ConsulWaitUntilReady(ComponentMakerV0.Addresses())
 			logger = lager.NewLogger("test")
 			logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
 
@@ -87,8 +74,8 @@ var _ = Describe("RollingUpgrade", func() {
 			bbsClient = ComponentMakerV0.BBSClient()
 			bbsServiceClient = ComponentMakerV0.BBSServiceClient(logger)
 
-			canary = helpers.DefaultLRPCreateRequest(ComponentMakerV0.Addresses, "dust-canary", "dust-canary", 1)
-			err = bbsClient.DesireLRP(logger, canary)
+			canary = helpers.DefaultLRPCreateRequest(ComponentMakerV0.Addresses(), "dust-canary", "dust-canary", 1)
+			err := bbsClient.DesireLRP(logger, canary)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -114,7 +101,7 @@ var _ = Describe("RollingUpgrade", func() {
 		It("should consistently remain routable", func() {
 			Eventually(helpers.LRPStatePoller(logger, bbsClient, canary.ProcessGuid, nil), 10*time.Second).Should(Equal(models.ActualLRPStateRunning))
 
-			canaryProcess = ifrit.Background(NewCanaryPoller(ComponentMakerV0.Addresses.Router, helpers.DefaultHost))
+			canaryProcess = ifrit.Background(NewCanaryPoller(ComponentMakerV0.Addresses().Router, helpers.DefaultHost))
 			Eventually(canaryProcess.Ready(), 5*time.Second).Should(BeClosed())
 
 			By("upgrading the bbs")
@@ -136,7 +123,7 @@ var _ = Describe("RollingUpgrade", func() {
 				msg := fmt.Sprintf("Upgrading cell%d", idx)
 				By(msg)
 
-				host, portStr, _ := net.SplitHostPort(ComponentMakerV0.Addresses.Rep)
+				host, portStr, _ := net.SplitHostPort(ComponentMakerV0.Addresses().Rep)
 				port, err := strconv.Atoi(portStr)
 				ExpectWithOffset(1, err).NotTo(HaveOccurred())
 				port = port + 10*idx // TODO: this is a hack based on offsetPort in components.go
