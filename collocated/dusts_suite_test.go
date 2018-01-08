@@ -9,36 +9,28 @@ import (
 	"path"
 	"path/filepath"
 
-	repconfig "code.cloudfoundry.org/rep/cmd/rep/config"
-
 	"code.cloudfoundry.org/bbs"
 	"code.cloudfoundry.org/bbs/serviceclient"
+	"code.cloudfoundry.org/consuladapter/consulrunner"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/inigo/helpers"
 	"code.cloudfoundry.org/inigo/world"
 	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/localip"
 	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/ginkgomon"
-	"github.com/tedsuo/ifrit/grouper"
 
 	"testing"
 )
 
 var (
-	componentMaker world.ComponentMaker
+	ComponentMakerV0, ComponentMakerV1 world.ComponentMaker
 
-	plumbing         ifrit.Process
-	gardenClient     garden.Client
 	bbsClient        bbs.InternalClient
 	bbsServiceClient serviceclient.ServiceClient
+	gardenClient     garden.Client
 	logger           lager.Logger
-	localIP          string
-
-	fileServerAssetsDir string
 )
 
 func TestDusts(t *testing.T) {
@@ -47,104 +39,70 @@ func TestDusts(t *testing.T) {
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	artifacts := world.BuiltArtifacts{
+	artifacts := make(map[string]world.BuiltArtifacts)
+	oldArtifacts := world.BuiltArtifacts{
 		Lifecycles: world.BuiltLifecycles{},
 	}
 
-	artifacts.Lifecycles.BuildLifecycles("dockerapplifecycle")
-	artifacts.Lifecycles.BuildLifecycles("buildpackapplifecycle")
-	artifacts.Executables = CompileTestedExecutables()
-	artifacts.Healthcheck = CompileHealthcheckExecutable()
-	CompileLdsListenerExecutable()
+	oldArtifacts.Lifecycles.BuildLifecycles("dockerapplifecycle")
+	oldArtifacts.Lifecycles.BuildLifecycles("buildpackapplifecycle")
+	oldArtifacts.Executables = CompileTestedExecutablesV0()
+	oldArtifacts.Healthcheck = CompileHealthcheckExecutableV0()
+	artifacts["old"] = oldArtifacts
+
+	newArtifacts := world.BuiltArtifacts{
+		Lifecycles: world.BuiltLifecycles{},
+	}
+
+	newArtifacts.Lifecycles.BuildLifecycles("dockerapplifecycle")
+	newArtifacts.Lifecycles.BuildLifecycles("buildpackapplifecycle")
+	newArtifacts.Executables = CompileTestedExecutablesV1()
+	newArtifacts.Healthcheck = CompileHealthcheckExecutableV1()
+	artifacts["new"] = newArtifacts
 
 	payload, err := json.Marshal(artifacts)
 	Expect(err).NotTo(HaveOccurred())
 
 	return payload
-}, func(encodedBuiltArtifacts []byte) {
-	var builtArtifacts world.BuiltArtifacts
+}, func(payload []byte) {
+	var artifacts map[string]world.BuiltArtifacts
 
-	err := json.Unmarshal(encodedBuiltArtifacts, &builtArtifacts)
+	err := json.Unmarshal(payload, &artifacts)
 	Expect(err).NotTo(HaveOccurred())
 
-	localIP, err = localip.LocalIP()
-	Expect(err).NotTo(HaveOccurred())
+	_, dbBaseConnectionString := helpers.DBInfo()
 
-	componentMaker = helpers.MakeComponentMaker("fixtures/certs/", builtArtifacts, localIP)
-	componentMaker.Setup()
+	// TODO: the hard coded addresses for router and file server prevent running multiple dusts tests at the same time
+	addresses := world.ComponentAddresses{
+		GardenLinux:         fmt.Sprintf("127.0.0.1:%d", 10000+config.GinkgoConfig.ParallelNode),
+		NATS:                fmt.Sprintf("127.0.0.1:%d", 11000+config.GinkgoConfig.ParallelNode),
+		Consul:              fmt.Sprintf("127.0.0.1:%d", 12750+config.GinkgoConfig.ParallelNode*consulrunner.PortOffsetLength),
+		Rep:                 fmt.Sprintf("127.0.0.1:%d", 14000+config.GinkgoConfig.ParallelNode),
+		FileServer:          fmt.Sprintf("127.0.0.1:%d", 8080),
+		Router:              fmt.Sprintf("127.0.0.1:%d", 80),
+		BBS:                 fmt.Sprintf("127.0.0.1:%d", 20500+config.GinkgoConfig.ParallelNode*2),
+		Health:              fmt.Sprintf("127.0.0.1:%d", 20500+config.GinkgoConfig.ParallelNode*2+1),
+		Auctioneer:          fmt.Sprintf("127.0.0.1:%d", 23000+config.GinkgoConfig.ParallelNode),
+		SSHProxy:            fmt.Sprintf("127.0.0.1:%d", 23500+config.GinkgoConfig.ParallelNode),
+		SSHProxyHealthCheck: fmt.Sprintf("127.0.0.1:%d", 24500+config.GinkgoConfig.ParallelNode),
+		FakeVolmanDriver:    fmt.Sprintf("127.0.0.1:%d", 25500+config.GinkgoConfig.ParallelNode),
+		LocalNodePlugin:     fmt.Sprintf("127.0.0.1:%d", 25550+config.GinkgoConfig.ParallelNode),
+		Locket:              fmt.Sprintf("127.0.0.1:%d", 26500+config.GinkgoConfig.ParallelNode),
+		SQL:                 fmt.Sprintf("%sdiego_%d", dbBaseConnectionString, config.GinkgoConfig.ParallelNode),
+	}
+
+	ComponentMakerV0 = helpers.MakeComponentMaker("fixtures/certs/", artifacts["old"], addresses)
+	ComponentMakerV0.Setup()
+
+	ComponentMakerV1 = helpers.MakeComponentMaker("fixtures/certs/", artifacts["new"], addresses)
+	ComponentMakerV1.Setup()
 })
 
 var _ = AfterSuite(func() {
-	componentMaker.Teardown()
+	ComponentMakerV0.Teardown()
 })
 
-var _ = BeforeEach(func() {
-	// TODO: the following hard coded addresses prevents running multiple dusts tests at the same time
-	componentMaker.Addresses.Router = localIP + ":80"
-	componentMaker.Addresses.FileServer = "127.0.0.1:8080"
-
-	var fileServer ifrit.Runner
-
-	// required since vizzini makes assumption about the port of file server being 8080
-	fileServer, fileServerAssetsDir = componentMaker.FileServer()
-	buildpackAppLifeCycleDir := filepath.Join(fileServerAssetsDir, "buildpack_app_lifecycle")
-	err := os.Mkdir(buildpackAppLifeCycleDir, 0755)
-	Expect(err).NotTo(HaveOccurred())
-	file := componentMaker.Artifacts.Lifecycles["buildpackapplifecycle"]
-	helpers.Copy(file, filepath.Join(buildpackAppLifeCycleDir, "buildpack_app_lifecycle.tgz"))
-
-	dockerAppLifeCycleDir := filepath.Join(fileServerAssetsDir, "docker_app_lifecycle")
-	err = os.Mkdir(dockerAppLifeCycleDir, 0755)
-	Expect(err).NotTo(HaveOccurred())
-	file = componentMaker.Artifacts.Lifecycles["dockerapplifecycle"]
-	helpers.Copy(file, filepath.Join(dockerAppLifeCycleDir, "docker_app_lifecycle.tgz"))
-
-	exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
-		cfg.ExportNetworkEnvVars = true
-	}
-
-	plumbing = ginkgomon.Invoke(grouper.NewOrdered(os.Kill, grouper.Members{
-		{"dependencies", grouper.NewParallel(os.Kill, grouper.Members{
-			{"nats", componentMaker.NATS()},
-			{"sql", componentMaker.SQL()},
-			{"consul", componentMaker.Consul()},
-			{"file-server", fileServer},
-			{"garden", componentMaker.Garden()},
-		})},
-		{"locket", componentMaker.Locket()},
-		{"control-plane", grouper.NewParallel(os.Kill, grouper.Members{
-			{"bbs", componentMaker.BBS()},
-			{"auctioneer", componentMaker.Auctioneer()},
-			{"router", componentMaker.Router()},
-			{"route-emitter", componentMaker.RouteEmitter()},
-			{"ssh-proxy", componentMaker.SSHProxy()},
-			{"rep-0", componentMaker.RepN(0, exportNetworkConfigs)}, // exporting network configs is used in container_environment_test.go
-			{"rep-1", componentMaker.RepN(1, exportNetworkConfigs)},
-		})},
-	}))
-
-	helpers.ConsulWaitUntilReady()
-	logger = lager.NewLogger("test")
-	logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
-
-	gardenClient = componentMaker.GardenClient()
-	bbsClient = componentMaker.BBSClient()
-	bbsServiceClient = componentMaker.BBSServiceClient(logger)
-})
-
-var _ = AfterEach(func() {
-	destroyContainerErrors := helpers.CleanupGarden(gardenClient)
-
-	helpers.StopProcesses(plumbing)
-
-	Expect(destroyContainerErrors).To(
-		BeEmpty(),
-		"%d containers failed to be destroyed!",
-		len(destroyContainerErrors),
-	)
-})
-
-func CompileTestedExecutables() world.BuiltExecutables {
+func CompileTestedExecutablesV1() world.BuiltExecutables {
 	var err error
 
 	builtExecutables := world.BuiltExecutables{}
@@ -154,22 +112,22 @@ func CompileTestedExecutables() world.BuiltExecutables {
 	builtExecutables["garden"], err = gexec.BuildIn(os.Getenv("GARDEN_GOPATH"), "code.cloudfoundry.org/guardian/cmd/gdn", "-race", "-a", "-tags", "daemon")
 	Expect(err).NotTo(HaveOccurred())
 
-	builtExecutables["auctioneer"], err = gexec.BuildIn(os.Getenv("AUCTIONEER_GOPATH"), "code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
+	builtExecutables["auctioneer"], err = gexec.BuildIn(os.Getenv("AUCTIONEER_GOPATH_V1"), "code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
-	builtExecutables["rep"], err = gexec.BuildIn(os.Getenv("REP_GOPATH"), "code.cloudfoundry.org/rep/cmd/rep", "-race")
+	builtExecutables["rep"], err = gexec.BuildIn(os.Getenv("REP_GOPATH_V1"), "code.cloudfoundry.org/rep/cmd/rep", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
-	builtExecutables["bbs"], err = gexec.BuildIn(os.Getenv("BBS_GOPATH"), "code.cloudfoundry.org/bbs/cmd/bbs", "-race")
+	builtExecutables["bbs"], err = gexec.BuildIn(os.Getenv("BBS_GOPATH_V1"), "code.cloudfoundry.org/bbs/cmd/bbs", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
-	builtExecutables["locket"], err = gexec.BuildIn(os.Getenv("LOCKET_GOPATH"), "code.cloudfoundry.org/locket/cmd/locket", "-race")
+	builtExecutables["locket"], err = gexec.BuildIn(os.Getenv("LOCKET_GOPATH_V1"), "code.cloudfoundry.org/locket/cmd/locket", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
-	builtExecutables["file-server"], err = gexec.BuildIn(os.Getenv("FILE_SERVER_GOPATH"), "code.cloudfoundry.org/fileserver/cmd/file-server", "-race")
+	builtExecutables["file-server"], err = gexec.BuildIn(os.Getenv("FILE_SERVER_GOPATH_V1"), "code.cloudfoundry.org/fileserver/cmd/file-server", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
-	builtExecutables["route-emitter"], err = gexec.BuildIn(os.Getenv("ROUTE_EMITTER_GOPATH"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
+	builtExecutables["route-emitter"], err = gexec.BuildIn(os.Getenv("ROUTE_EMITTER_GOPATH_V1"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
 	builtExecutables["router"], err = gexec.BuildIn(os.Getenv("ROUTER_GOPATH"), "code.cloudfoundry.org/gorouter", "-race")
@@ -178,11 +136,56 @@ func CompileTestedExecutables() world.BuiltExecutables {
 	builtExecutables["routing-api"], err = gexec.BuildIn(os.Getenv("ROUTING_API_GOPATH"), "code.cloudfoundry.org/routing-api/cmd/routing-api", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
-	builtExecutables["ssh-proxy"], err = gexec.Build("code.cloudfoundry.org/diego-ssh/cmd/ssh-proxy", "-race")
+	builtExecutables["ssh-proxy"], err = gexec.BuildIn(os.Getenv("SSH_PROXY_GOPATH_V1"), "code.cloudfoundry.org/diego-ssh/cmd/ssh-proxy", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
 	os.Setenv("CGO_ENABLED", "0")
-	builtExecutables["sshd"], err = gexec.Build("code.cloudfoundry.org/diego-ssh/cmd/sshd", "-a", "-installsuffix", "static")
+	builtExecutables["sshd"], err = gexec.BuildIn(os.Getenv("SSHD_GOPATH_V1"), "code.cloudfoundry.org/diego-ssh/cmd/sshd", "-a", "-installsuffix", "static")
+	os.Unsetenv("CGO_ENABLED")
+	Expect(err).NotTo(HaveOccurred())
+
+	return builtExecutables
+}
+
+func CompileTestedExecutablesV0() world.BuiltExecutables {
+	var err error
+
+	builtExecutables := world.BuiltExecutables{}
+
+	// keeping file-server, router, routing-api, and garden at v1 with the initial start
+	builtExecutables["router"], err = gexec.BuildIn(os.Getenv("ROUTER_GOPATH"), "code.cloudfoundry.org/gorouter", "-race")
+	Expect(err).NotTo(HaveOccurred())
+
+	builtExecutables["routing-api"], err = gexec.BuildIn(os.Getenv("ROUTING_API_GOPATH"), "code.cloudfoundry.org/routing-api/cmd/routing-api", "-race")
+	Expect(err).NotTo(HaveOccurred())
+
+	builtExecutables["garden"], err = gexec.BuildIn(os.Getenv("GARDEN_GOPATH"), "code.cloudfoundry.org/guardian/cmd/gdn", "-race", "-a", "-tags", "daemon")
+	Expect(err).NotTo(HaveOccurred())
+
+	builtExecutables["locket"], err = gexec.BuildIn(os.Getenv("LOCKET_GOPATH_V1"), "code.cloudfoundry.org/locket/cmd/locket", "-race")
+	Expect(err).NotTo(HaveOccurred())
+
+	// compiling v0 version of diego components
+	builtExecutables["file-server"], err = gexec.BuildIn(os.Getenv("FILE_SERVER_GOPATH_V0"), "code.cloudfoundry.org/fileserver/cmd/file-server", "-race")
+	Expect(err).NotTo(HaveOccurred())
+
+	builtExecutables["auctioneer"], err = gexec.BuildIn(os.Getenv("AUCTIONEER_GOPATH_V0"), "code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
+	Expect(err).NotTo(HaveOccurred())
+
+	builtExecutables["rep"], err = gexec.BuildIn(os.Getenv("REP_GOPATH_V0"), "code.cloudfoundry.org/rep/cmd/rep", "-race")
+	Expect(err).NotTo(HaveOccurred())
+
+	builtExecutables["bbs"], err = gexec.BuildIn(os.Getenv("BBS_GOPATH_V0"), "code.cloudfoundry.org/bbs/cmd/bbs", "-race")
+	Expect(err).NotTo(HaveOccurred())
+
+	builtExecutables["route-emitter"], err = gexec.BuildIn(os.Getenv("ROUTE_EMITTER_GOPATH_V0"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
+	Expect(err).NotTo(HaveOccurred())
+
+	builtExecutables["ssh-proxy"], err = gexec.BuildIn(os.Getenv("SSH_PROXY_GOPATH_V0"), "code.cloudfoundry.org/diego-ssh/cmd/ssh-proxy", "-race")
+	Expect(err).NotTo(HaveOccurred())
+
+	os.Setenv("CGO_ENABLED", "0")
+	builtExecutables["sshd"], err = gexec.BuildIn(os.Getenv("SSHD_GOPATH_V0"), "code.cloudfoundry.org/diego-ssh/cmd/sshd", "-a", "-installsuffix", "static")
 	os.Unsetenv("CGO_ENABLED")
 	Expect(err).NotTo(HaveOccurred())
 
@@ -207,9 +210,20 @@ func compileVizzini(packagePath string, args ...string) string {
 	return executable
 }
 
-func CompileHealthcheckExecutable() string {
+func CompileHealthcheckExecutableV0() string {
 	healthcheckDir := world.TempDir("healthcheck")
-	healthcheckPath, err := gexec.Build("code.cloudfoundry.org/healthcheck/cmd/healthcheck", "-race")
+	healthcheckPath, err := gexec.BuildIn(os.Getenv("HEALTHCHECK_GOPATH_V0"), "code.cloudfoundry.org/healthcheck/cmd/healthcheck", "-race")
+	Expect(err).NotTo(HaveOccurred())
+
+	err = os.Rename(healthcheckPath, filepath.Join(healthcheckDir, "healthcheck"))
+	Expect(err).NotTo(HaveOccurred())
+
+	return healthcheckDir
+}
+
+func CompileHealthcheckExecutableV1() string {
+	healthcheckDir := world.TempDir("healthcheck")
+	healthcheckPath, err := gexec.BuildIn(os.Getenv("HEALTHCHECK_GOPATH_V1"), "code.cloudfoundry.org/healthcheck/cmd/healthcheck", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
 	err = os.Rename(healthcheckPath, filepath.Join(healthcheckDir, "healthcheck"))
