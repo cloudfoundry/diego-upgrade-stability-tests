@@ -13,6 +13,7 @@ import (
 	"code.cloudfoundry.org/bbs/serviceclient"
 	"code.cloudfoundry.org/consuladapter/consulrunner"
 	"code.cloudfoundry.org/garden"
+	"code.cloudfoundry.org/inigo/helpers"
 	"code.cloudfoundry.org/inigo/world"
 	"code.cloudfoundry.org/lager"
 	. "github.com/onsi/ginkgo"
@@ -33,6 +34,7 @@ var (
 )
 
 func TestDusts(t *testing.T) {
+	helpers.RegisterDefaultTimeouts()
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Dusts Suite")
 }

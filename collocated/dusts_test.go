@@ -74,7 +74,7 @@ var _ = Describe("Dusts", func() {
 			Expect(err).NotTo(HaveOccurred())
 			vizziniPath := filepath.Join(os.Getenv("GOPATH"), "src/code.cloudfoundry.org/vizzini")
 			flags := []string{
-				"-nodes", "2", // run ginkgo in parallel
+				"-nodes", "4", // run ginkgo in parallel
 				"-randomizeAllSpecs",
 				"-r",
 				"-slowSpecThreshold", "10", // set threshold to 10s

@@ -99,10 +99,10 @@ var _ = Describe("RollingUpgrade", func() {
 		})
 
 		It("should consistently remain routable", func() {
-			Eventually(helpers.LRPStatePoller(logger, bbsClient, canary.ProcessGuid, nil), 10*time.Second).Should(Equal(models.ActualLRPStateRunning))
+			Eventually(helpers.LRPStatePoller(logger, bbsClient, canary.ProcessGuid, nil)).Should(Equal(models.ActualLRPStateRunning))
 
 			canaryProcess = ifrit.Background(NewCanaryPoller(ComponentMakerV0.Addresses().Router, helpers.DefaultHost))
-			Eventually(canaryProcess.Ready(), 5*time.Second).Should(BeClosed())
+			Eventually(canaryProcess.Ready()).Should(BeClosed())
 
 			By("upgrading the bbs")
 			ginkgomon.Interrupt(bbs, 5*time.Second)
@@ -132,18 +132,18 @@ var _ = Describe("RollingUpgrade", func() {
 				addr := fmt.Sprintf("http://%s:%d/evacuate", host, port)
 				_, err = http.Post(addr, "", nil)
 				ExpectWithOffset(1, err).NotTo(HaveOccurred())
-				EventuallyWithOffset(1, (*process).Wait(), 10*time.Second).Should(Receive())
+				EventuallyWithOffset(1, (*process).Wait()).Should(Receive())
 
 				*process = ginkgomon.Invoke(ComponentMakerV1.RepN(idx))
 			}
 
 			upgradeRep(0, &rep0)
 			By("checking poller is still up")
-			Consistently(canaryProcess.Wait(), 5*time.Second).ShouldNot(Receive())
+			Consistently(canaryProcess.Wait()).ShouldNot(Receive())
 
 			upgradeRep(1, &rep1)
 			By("checking poller is still up")
-			Consistently(canaryProcess.Wait(), 5*time.Second).ShouldNot(Receive())
+			Consistently(canaryProcess.Wait()).ShouldNot(Receive())
 		})
 	})
 })
