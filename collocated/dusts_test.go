@@ -38,8 +38,8 @@ var _ = Describe("Dusts", func() {
 					{"garden", ComponentMakerV1.Garden()},
 				})},
 				{"locket", ComponentMakerV1.Locket()},
+				{"bbs", ComponentMakerV1.BBS()}, // ensure BBS is up before the other components start, e.g. route-emitter needs to sync on startup
 				{"control-plane", grouper.NewParallel(os.Kill, grouper.Members{
-					{"bbs", ComponentMakerV1.BBS()},
 					{"auctioneer", ComponentMakerV1.Auctioneer()},
 					{"router", ComponentMakerV1.Router()},
 					{"route-emitter", ComponentMakerV1.RouteEmitter()},
