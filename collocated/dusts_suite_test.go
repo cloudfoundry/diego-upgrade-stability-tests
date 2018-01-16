@@ -103,73 +103,56 @@ var _ = AfterSuite(func() {
 	ComponentMakerV0.Teardown()
 })
 
-func CompileTestedExecutablesV1() world.BuiltExecutables {
-	var err error
+func lazyBuild(binariesPath, gopath, packagePath string, args ...string) string {
+	Expect(os.MkdirAll(binariesPath, 0777)).To(Succeed())
+	binaryName := filepath.Base(packagePath)
+	expectedBinaryPath := path.Join(binariesPath, binaryName)
+	if _, err := os.Stat(expectedBinaryPath); os.IsNotExist(err) {
+		fmt.Printf("Building %s\n", packagePath)
+		binaryPath, err := gexec.BuildIn(gopath, packagePath, args...)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(os.Rename(binaryPath, path.Join(binariesPath, binaryName))).To(Succeed())
+	}
+	return expectedBinaryPath
+}
 
+func CompileTestedExecutablesV1() world.BuiltExecutables {
+	fmt.Println("Lazily building V1 executables")
+	binariesPath := "/tmp/v1_binaries"
 	builtExecutables := world.BuiltExecutables{}
 
 	builtExecutables["vizzini"] = compileVizzini("code.cloudfoundry.org/vizzini")
-
-	builtExecutables["garden"], err = gexec.BuildIn(os.Getenv("GARDEN_GOPATH"), "code.cloudfoundry.org/guardian/cmd/gdn", "-race", "-a", "-tags", "daemon")
-	Expect(err).NotTo(HaveOccurred())
-
-	builtExecutables["auctioneer"], err = gexec.BuildIn(os.Getenv("AUCTIONEER_GOPATH"), "code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
-	builtExecutables["rep"], err = gexec.BuildIn(os.Getenv("REP_GOPATH"), "code.cloudfoundry.org/rep/cmd/rep", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
-	builtExecutables["bbs"], err = gexec.BuildIn(os.Getenv("BBS_GOPATH"), "code.cloudfoundry.org/bbs/cmd/bbs", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
-	builtExecutables["locket"], err = gexec.BuildIn(os.Getenv("LOCKET_GOPATH"), "code.cloudfoundry.org/locket/cmd/locket", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
-	builtExecutables["file-server"], err = gexec.BuildIn(os.Getenv("FILE_SERVER_GOPATH"), "code.cloudfoundry.org/fileserver/cmd/file-server", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
-	builtExecutables["route-emitter"], err = gexec.BuildIn(os.Getenv("ROUTE_EMITTER_GOPATH"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
-	builtExecutables["router"], err = gexec.BuildIn(os.Getenv("ROUTER_GOPATH"), "code.cloudfoundry.org/gorouter", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
-	builtExecutables["routing-api"], err = gexec.BuildIn(os.Getenv("ROUTING_API_GOPATH"), "code.cloudfoundry.org/routing-api/cmd/routing-api", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
-	builtExecutables["ssh-proxy"], err = gexec.BuildIn(os.Getenv("SSH_PROXY_GOPATH"), "code.cloudfoundry.org/diego-ssh/cmd/ssh-proxy", "-race")
-	Expect(err).NotTo(HaveOccurred())
+	builtExecutables["garden"] = lazyBuild(binariesPath, os.Getenv("GARDEN_GOPATH"), "code.cloudfoundry.org/guardian/cmd/gdn", "-race", "-a", "-tags", "daemon")
+	builtExecutables["auctioneer"] = lazyBuild(binariesPath, os.Getenv("AUCTIONEER_GOPATH"), "code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
+	builtExecutables["rep"] = lazyBuild(binariesPath, os.Getenv("REP_GOPATH"), "code.cloudfoundry.org/rep/cmd/rep", "-race")
+	builtExecutables["bbs"] = lazyBuild(binariesPath, os.Getenv("BBS_GOPATH"), "code.cloudfoundry.org/bbs/cmd/bbs", "-race")
+	builtExecutables["locket"] = lazyBuild(binariesPath, os.Getenv("LOCKET_GOPATH"), "code.cloudfoundry.org/locket/cmd/locket", "-race")
+	builtExecutables["file-server"] = lazyBuild(binariesPath, os.Getenv("FILE_SERVER_GOPATH"), "code.cloudfoundry.org/fileserver/cmd/file-server", "-race")
+	builtExecutables["route-emitter"] = lazyBuild(binariesPath, os.Getenv("ROUTE_EMITTER_GOPATH"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
+	builtExecutables["router"] = lazyBuild(binariesPath, os.Getenv("ROUTER_GOPATH"), "code.cloudfoundry.org/gorouter", "-race")
+	builtExecutables["routing-api"] = lazyBuild(binariesPath, os.Getenv("ROUTING_API_GOPATH"), "code.cloudfoundry.org/routing-api/cmd/routing-api", "-race")
+	builtExecutables["ssh-proxy"] = lazyBuild(binariesPath, os.Getenv("SSH_PROXY_GOPATH"), "code.cloudfoundry.org/diego-ssh/cmd/ssh-proxy", "-race")
 
 	os.Setenv("CGO_ENABLED", "0")
-	builtExecutables["sshd"], err = gexec.BuildIn(os.Getenv("SSHD_GOPATH"), "code.cloudfoundry.org/diego-ssh/cmd/sshd", "-a", "-installsuffix", "static")
+	builtExecutables["sshd"] = lazyBuild(binariesPath, os.Getenv("SSHD_GOPATH"), "code.cloudfoundry.org/diego-ssh/cmd/sshd", "-a", "-installsuffix", "static")
 	os.Unsetenv("CGO_ENABLED")
-	Expect(err).NotTo(HaveOccurred())
 
 	return builtExecutables
 }
 
 func CompileTestedExecutablesV0() world.BuiltExecutables {
-	var err error
-
+	fmt.Println("Lazily building V0 executables")
+	binariesPath := "/tmp/v0_binaries"
 	builtExecutables := world.BuiltExecutables{}
 
-	// compiling v0 version of diego components
-	builtExecutables["auctioneer"], err = gexec.BuildIn(os.Getenv("AUCTIONEER_GOPATH_V0"), "code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
-	builtExecutables["rep"], err = gexec.BuildIn(os.Getenv("REP_GOPATH_V0"), "code.cloudfoundry.org/rep/cmd/rep", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
-	builtExecutables["bbs"], err = gexec.BuildIn(os.Getenv("BBS_GOPATH_V0"), "code.cloudfoundry.org/bbs/cmd/bbs", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
-	builtExecutables["route-emitter"], err = gexec.BuildIn(os.Getenv("ROUTE_EMITTER_GOPATH_V0"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
-	Expect(err).NotTo(HaveOccurred())
+	builtExecutables["auctioneer"] = lazyBuild(binariesPath, os.Getenv("AUCTIONEER_GOPATH_V0"), "code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
+	builtExecutables["rep"] = lazyBuild(binariesPath, os.Getenv("REP_GOPATH_V0"), "code.cloudfoundry.org/rep/cmd/rep", "-race")
+	builtExecutables["bbs"] = lazyBuild(binariesPath, os.Getenv("BBS_GOPATH_V0"), "code.cloudfoundry.org/bbs/cmd/bbs", "-race")
+	builtExecutables["route-emitter"] = lazyBuild(binariesPath, os.Getenv("ROUTE_EMITTER_GOPATH_V0"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
 
 	os.Setenv("CGO_ENABLED", "0")
-	builtExecutables["sshd"], err = gexec.BuildIn(os.Getenv("SSHD_GOPATH_V0"), "code.cloudfoundry.org/diego-ssh/cmd/sshd", "-a", "-installsuffix", "static")
+	builtExecutables["sshd"] = lazyBuild(binariesPath, os.Getenv("SSHD_GOPATH_V0"), "code.cloudfoundry.org/diego-ssh/cmd/sshd", "-a", "-installsuffix", "static")
 	os.Unsetenv("CGO_ENABLED")
-	Expect(err).NotTo(HaveOccurred())
 
 	return builtExecutables
 }
