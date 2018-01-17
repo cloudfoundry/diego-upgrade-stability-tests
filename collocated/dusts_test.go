@@ -20,7 +20,7 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 )
 
-const (
+var (
 	repV0UnsupportedVizziniTests = []string{"MaxPids", "CF_INSTANCE_INTERNAL_IP"}
 )
 
