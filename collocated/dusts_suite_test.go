@@ -3,16 +3,13 @@ package dusts_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 
 	"code.cloudfoundry.org/bbs"
 	"code.cloudfoundry.org/bbs/serviceclient"
 	"code.cloudfoundry.org/consuladapter/consulrunner"
-	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/inigo/helpers"
 	"code.cloudfoundry.org/inigo/world"
 	"code.cloudfoundry.org/lager"
@@ -29,7 +26,6 @@ var (
 
 	bbsClient        bbs.InternalClient
 	bbsServiceClient serviceclient.ServiceClient
-	gardenClient     garden.Client
 	logger           lager.Logger
 )
 
@@ -47,8 +43,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	oldArtifacts.Lifecycles.BuildLifecycles("dockerapplifecycle")
 	oldArtifacts.Lifecycles.BuildLifecycles("buildpackapplifecycle")
-	oldArtifacts.Executables = CompileTestedExecutablesV0()
-	oldArtifacts.Healthcheck = CompileHealthcheckExecutableV0()
+	oldArtifacts.Executables = compileTestedExecutablesV0()
 	artifacts["old"] = oldArtifacts
 
 	newArtifacts := world.BuiltArtifacts{
@@ -57,8 +52,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	newArtifacts.Lifecycles.BuildLifecycles("dockerapplifecycle")
 	newArtifacts.Lifecycles.BuildLifecycles("buildpackapplifecycle")
-	newArtifacts.Executables = CompileTestedExecutablesV1()
-	newArtifacts.Healthcheck = CompileHealthcheckExecutableV1()
+	newArtifacts.Executables = compileTestedExecutablesV1()
 	artifacts["new"] = newArtifacts
 
 	payload, err := json.Marshal(artifacts)
@@ -116,12 +110,11 @@ func lazyBuild(binariesPath, gopath, packagePath string, args ...string) string 
 	return expectedBinaryPath
 }
 
-func CompileTestedExecutablesV1() world.BuiltExecutables {
+func compileTestedExecutablesV1() world.BuiltExecutables {
 	fmt.Println("Lazily building V1 executables")
 	binariesPath := "/tmp/v1_binaries"
 	builtExecutables := world.BuiltExecutables{}
 
-	builtExecutables["vizzini"] = compileVizzini("code.cloudfoundry.org/vizzini")
 	builtExecutables["garden"] = lazyBuild(binariesPath, os.Getenv("GARDEN_GOPATH"), "code.cloudfoundry.org/guardian/cmd/gdn", "-race", "-a", "-tags", "daemon")
 	builtExecutables["auctioneer"] = lazyBuild(binariesPath, os.Getenv("AUCTIONEER_GOPATH"), "code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
 	builtExecutables["rep"] = lazyBuild(binariesPath, os.Getenv("REP_GOPATH"), "code.cloudfoundry.org/rep/cmd/rep", "-race")
@@ -140,7 +133,7 @@ func CompileTestedExecutablesV1() world.BuiltExecutables {
 	return builtExecutables
 }
 
-func CompileTestedExecutablesV0() world.BuiltExecutables {
+func compileTestedExecutablesV0() world.BuiltExecutables {
 	fmt.Println("Lazily building V0 executables")
 	binariesPath := "/tmp/v0_binaries"
 	builtExecutables := world.BuiltExecutables{}
@@ -149,62 +142,11 @@ func CompileTestedExecutablesV0() world.BuiltExecutables {
 	builtExecutables["rep"] = lazyBuild(binariesPath, os.Getenv("REP_GOPATH_V0"), "code.cloudfoundry.org/rep/cmd/rep", "-race")
 	builtExecutables["bbs"] = lazyBuild(binariesPath, os.Getenv("BBS_GOPATH_V0"), "code.cloudfoundry.org/bbs/cmd/bbs", "-race")
 	builtExecutables["route-emitter"] = lazyBuild(binariesPath, os.Getenv("ROUTE_EMITTER_GOPATH_V0"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
+	builtExecutables["ssh-proxy"] = lazyBuild(binariesPath, os.Getenv("SSH_PROXY_GOPATH_V0"), "code.cloudfoundry.org/diego-ssh/cmd/ssh-proxy", "-race")
 
 	os.Setenv("CGO_ENABLED", "0")
 	builtExecutables["sshd"] = lazyBuild(binariesPath, os.Getenv("SSHD_GOPATH_V0"), "code.cloudfoundry.org/diego-ssh/cmd/sshd", "-a", "-installsuffix", "static")
 	os.Unsetenv("CGO_ENABLED")
 
 	return builtExecutables
-}
-
-func compileVizzini(packagePath string, args ...string) string {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "vizzini")
-	Expect(err).NotTo(HaveOccurred())
-
-	executable := filepath.Join(tmpDir, path.Base(packagePath))
-
-	cmdArgs := append([]string{"test"}, args...)
-	cmdArgs = append(cmdArgs, "-c", "-o", executable, packagePath)
-
-	build := exec.Command("go", cmdArgs...)
-	build.Env = os.Environ()
-
-	output, err := build.CombinedOutput()
-	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Failed to build vizzini:\n\nOutput:\n%s", string(output)))
-
-	return executable
-}
-
-func CompileHealthcheckExecutableV0() string {
-	healthcheckDir := world.TempDir("healthcheck")
-	healthcheckPath, err := gexec.BuildIn(os.Getenv("HEALTHCHECK_GOPATH_V0"), "code.cloudfoundry.org/healthcheck/cmd/healthcheck", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
-	err = os.Rename(healthcheckPath, filepath.Join(healthcheckDir, "healthcheck"))
-	Expect(err).NotTo(HaveOccurred())
-
-	return healthcheckDir
-}
-
-func CompileHealthcheckExecutableV1() string {
-	healthcheckDir := world.TempDir("healthcheck")
-	healthcheckPath, err := gexec.BuildIn(os.Getenv("HEALTHCHECK_GOPATH"), "code.cloudfoundry.org/healthcheck/cmd/healthcheck", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
-	err = os.Rename(healthcheckPath, filepath.Join(healthcheckDir, "healthcheck"))
-	Expect(err).NotTo(HaveOccurred())
-
-	return healthcheckDir
-}
-
-func CompileLdsListenerExecutable() string {
-	envoyPath := os.Getenv("ENVOY_PATH")
-
-	ldsListenerPath, err := gexec.Build("code.cloudfoundry.org/rep/lds/cmd/lds", "-race")
-	Expect(err).NotTo(HaveOccurred())
-
-	err = os.Rename(ldsListenerPath, filepath.Join(envoyPath, "lds"))
-	Expect(err).NotTo(HaveOccurred())
-
-	return envoyPath
 }

@@ -14,7 +14,7 @@ import (
 	bbsconfig "code.cloudfoundry.org/bbs/cmd/bbs/config"
 
 	"code.cloudfoundry.org/bbs/models"
-	"code.cloudfoundry.org/diego-upgrade-stability-tests/collocated/fixtures"
+	"code.cloudfoundry.org/inigo/fixtures"
 	"code.cloudfoundry.org/inigo/helpers"
 	"code.cloudfoundry.org/lager"
 
@@ -27,17 +27,13 @@ import (
 )
 
 var _ = Describe("RollingUpgrade", func() {
-	var (
-		archiveFiles []archive_helper.ArchiveFile
-	)
-
 	Context("v0 to v1", func() {
 		var (
-			bbs, routeEmitter, auctioneer, rep0, rep1 ifrit.Process
+			archiveFiles []archive_helper.ArchiveFile
 
-			canary        *models.DesiredLRP
-			canaryProcess ifrit.Process
-			dependencies  ifrit.Process
+			bbs, routeEmitter, auctioneer, rep0, rep1 ifrit.Process
+			canaryPoller                              ifrit.Process
+			plumbing                                  ifrit.Process
 		)
 
 		BeforeEach(func() {
@@ -49,15 +45,13 @@ var _ = Describe("RollingUpgrade", func() {
 				archiveFiles,
 			)
 
-			dependencies = ginkgomon.Invoke(grouper.NewOrdered(os.Kill, grouper.Members{
-				{"dependencies", grouper.NewParallel(os.Kill, grouper.Members{
-					{"nats", ComponentMakerV1.NATS()},
-					{"sql", ComponentMakerV1.SQL()},
-					{"consul", ComponentMakerV1.Consul()},
-					{"file-server", fileServer},
-					{"garden", ComponentMakerV1.Garden()},
-					{"router", ComponentMakerV1.Router()},
-				})},
+			plumbing = ginkgomon.Invoke(grouper.NewParallel(os.Kill, grouper.Members{
+				{Name: "nats", Runner: ComponentMakerV1.NATS()},
+				{Name: "sql", Runner: ComponentMakerV1.SQL()},
+				{Name: "consul", Runner: ComponentMakerV1.Consul()},
+				{Name: "file-server", Runner: fileServer},
+				{Name: "garden", Runner: ComponentMakerV1.Garden()},
+				{Name: "router", Runner: ComponentMakerV1.Router()},
 			}))
 
 			bbs = ginkgomon.Invoke(ComponentMakerV0.BBS())
@@ -70,25 +64,20 @@ var _ = Describe("RollingUpgrade", func() {
 			logger = lager.NewLogger("test")
 			logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
 
-			gardenClient = ComponentMakerV0.GardenClient()
 			bbsClient = ComponentMakerV0.BBSClient()
 			bbsServiceClient = ComponentMakerV0.BBSServiceClient(logger)
-
-			canary = helpers.DefaultLRPCreateRequest(ComponentMakerV0.Addresses(), "dust-canary", "dust-canary", 1)
-			err := bbsClient.DesireLRP(logger, canary)
-			Expect(err).NotTo(HaveOccurred())
 		})
 
 		AfterEach(func() {
-			destroyContainerErrors := helpers.CleanupGarden(gardenClient)
+			destroyContainerErrors := helpers.CleanupGarden(ComponentMakerV1.GardenClient())
 
 			helpers.StopProcesses(
-				canaryProcess,
+				canaryPoller,
 				bbs,
 				routeEmitter,
 				auctioneer,
 				rep0, rep1,
-				dependencies,
+				plumbing,
 			)
 
 			Expect(destroyContainerErrors).To(
@@ -99,10 +88,13 @@ var _ = Describe("RollingUpgrade", func() {
 		})
 
 		It("should consistently remain routable", func() {
+			canary := helpers.DefaultLRPCreateRequest(ComponentMakerV0.Addresses(), "dust-canary", "dust-canary", 1)
+			err := bbsClient.DesireLRP(logger, canary)
+			Expect(err).NotTo(HaveOccurred())
 			Eventually(helpers.LRPStatePoller(logger, bbsClient, canary.ProcessGuid, nil)).Should(Equal(models.ActualLRPStateRunning))
 
-			canaryProcess = ifrit.Background(NewCanaryPoller(ComponentMakerV0.Addresses().Router, helpers.DefaultHost))
-			Eventually(canaryProcess.Ready()).Should(BeClosed())
+			canaryPoller = ifrit.Background(NewPoller(ComponentMakerV0.Addresses().Router, helpers.DefaultHost))
+			Eventually(canaryPoller.Ready()).Should(BeClosed())
 
 			By("upgrading the bbs")
 			ginkgomon.Interrupt(bbs, 5*time.Second)
@@ -120,7 +112,7 @@ var _ = Describe("RollingUpgrade", func() {
 			routeEmitter = ginkgomon.Invoke(ComponentMakerV1.RouteEmitter())
 
 			upgradeRep := func(idx int, process *ifrit.Process) {
-				msg := fmt.Sprintf("Upgrading cell%d", idx)
+				msg := fmt.Sprintf("Upgrading cell %d", idx)
 				By(msg)
 
 				host, portStr, _ := net.SplitHostPort(ComponentMakerV0.Addresses().Rep)
@@ -139,35 +131,35 @@ var _ = Describe("RollingUpgrade", func() {
 
 			upgradeRep(0, &rep0)
 			By("checking poller is still up")
-			Consistently(canaryProcess.Wait()).ShouldNot(Receive())
+			Consistently(canaryPoller.Wait()).ShouldNot(Receive())
 
 			upgradeRep(1, &rep1)
 			By("checking poller is still up")
-			Consistently(canaryProcess.Wait()).ShouldNot(Receive())
+			Consistently(canaryPoller.Wait()).ShouldNot(Receive())
 		})
 	})
 })
 
-type canaryPoller struct {
+type poller struct {
 	routerAddr string
 	host       string
 }
 
-func NewCanaryPoller(routerAddr, host string) *canaryPoller {
-	return &canaryPoller{
+func NewPoller(routerAddr, host string) *poller {
+	return &poller{
 		routerAddr: routerAddr,
 		host:       host,
 	}
 }
 
-func (c *canaryPoller) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+func (c *poller) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	defer GinkgoRecover()
 
 loop:
 	for {
 		select {
 		case <-signals:
-			fmt.Println("exiting canary poller...")
+			fmt.Println("exiting poller...")
 			return nil
 
 		default:
@@ -184,7 +176,7 @@ loop:
 	for {
 		select {
 		case <-signals:
-			fmt.Println("exiting canary poller...")
+			fmt.Println("exiting poller...")
 			return nil
 
 		default:
@@ -198,6 +190,4 @@ loop:
 			}
 		}
 	}
-
-	return nil
 }
