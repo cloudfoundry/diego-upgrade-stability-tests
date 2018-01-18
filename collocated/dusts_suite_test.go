@@ -87,14 +87,13 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	}
 
 	ComponentMakerV0 = world.MakeV0ComponentMaker("fixtures/certs/", artifacts["old"], addresses)
-	ComponentMakerV0.Setup()
-
 	ComponentMakerV1 = world.MakeComponentMaker("fixtures/certs/", artifacts["new"], addresses)
-	ComponentMakerV1.Setup()
+
+	ComponentMakerV1.GrootFSInitStore()
 })
 
 var _ = AfterSuite(func() {
-	ComponentMakerV0.Teardown()
+	ComponentMakerV1.GrootFSDeleteStore()
 })
 
 func lazyBuild(binariesPath, gopath, packagePath string, args ...string) string {
