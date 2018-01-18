@@ -207,7 +207,7 @@ func runVizziniTests(gopathEnvVar string, skips ...string) {
 	Expect(err).NotTo(HaveOccurred())
 	vizziniPath := filepath.Join(os.Getenv(gopathEnvVar), "src/code.cloudfoundry.org/vizzini")
 	flags := []string{
-		"-nodes", "2",
+		"-nodes", "4",
 		"-randomizeAllSpecs",
 		"-r",
 		"-slowSpecThreshold", "60",
@@ -218,7 +218,7 @@ func runVizziniTests(gopathEnvVar string, skips ...string) {
 		"-bbs-client-key", ComponentMakerV1.BBSSSLConfig().ClientKey,
 		"-ssh-address", ComponentMakerV1.Addresses().SSHProxy,
 		"-ssh-password", "",
-		"-routable-domain-suffix", ip + ".xip.io",
+		"-routable-domain-suffix", "test.internal", // Served by dnsmasq using setup_inigo script
 		"-host-address", ip,
 	}
 
