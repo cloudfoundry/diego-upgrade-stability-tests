@@ -5,7 +5,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	auctioneerconfig "code.cloudfoundry.org/auctioneer/cmd/auctioneer/config"
 	bbsconfig "code.cloudfoundry.org/bbs/cmd/bbs/config"
@@ -25,30 +24,94 @@ var (
 )
 
 var _ = Describe("Dusts", func() {
-	Context("exercising the API", func() {
-		var (
-			plumbing                                     ifrit.Process
-			bbs, routeEmitter, sshProxy, auctioneer, rep ifrit.Process
+	var (
+		plumbing                                     ifrit.Process
+		bbs, routeEmitter, sshProxy, auctioneer, rep ifrit.Process
+		bbsRunner                                    ifrit.Runner
+		routeEmitterRunner                           ifrit.Runner
+		sshProxyRunner                               ifrit.Runner
+		auctioneerRunner                             ifrit.Runner
+		repRunner                                    ifrit.Runner
+		bbsClientGoPathEnvVar                        string
+	)
+
+	BeforeEach(func() {
+		logger = lager.NewLogger("test")
+		logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
+
+		bbsClientGoPathEnvVar = "GOPATH_V0"
+
+		fileServer, _ := ComponentMakerV1.FileServer()
+
+		plumbing = ginkgomon.Invoke(grouper.NewParallel(os.Kill, grouper.Members{
+			{Name: "nats", Runner: ComponentMakerV1.NATS()},
+			{Name: "sql", Runner: ComponentMakerV1.SQL()},
+			{Name: "consul", Runner: ComponentMakerV1.Consul()},
+			{Name: "file-server", Runner: fileServer},
+			{Name: "garden", Runner: ComponentMakerV1.Garden()},
+			{Name: "router", Runner: ComponentMakerV1.Router()},
+		}))
+		helpers.ConsulWaitUntilReady(ComponentMakerV0.Addresses())
+
+		bbsRunner = ComponentMakerV0.BBS()
+		routeEmitterRunner = ComponentMakerV0.RouteEmitter()
+		auctioneerRunner = ComponentMakerV0.Auctioneer()
+		repRunner = ComponentMakerV0.Rep()
+		sshProxyRunner = ComponentMakerV0.SSHProxy()
+	})
+
+	JustBeforeEach(func() {
+		bbs = ginkgomon.Invoke(bbsRunner)
+		routeEmitter = ginkgomon.Invoke(routeEmitterRunner)
+		auctioneer = ginkgomon.Invoke(auctioneerRunner)
+		rep = ginkgomon.Invoke(repRunner)
+		sshProxy = ginkgomon.Invoke(sshProxyRunner)
+	})
+
+	AfterEach(func() {
+		destroyContainerErrors := helpers.CleanupGarden(ComponentMakerV1.GardenClient())
+
+		helpers.StopProcesses(
+			bbs,
+			auctioneer,
+			rep,
+			routeEmitter,
+			sshProxy,
+			plumbing,
 		)
 
+		Expect(destroyContainerErrors).To(
+			BeEmpty(),
+			"%d containers failed to be destroyed!",
+			len(destroyContainerErrors),
+		)
+	})
+
+	Context("v0 configuration", func() {
+		It("runs vizzini successfully", func() {
+			runVizziniTests(bbsClientGoPathEnvVar, "should allow access to an internal IP")
+		})
+	})
+
+	Context("upgrading the BBS API", func() {
 		BeforeEach(func() {
-			logger = lager.NewLogger("test")
-			logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
-
-			fileServer, _ := ComponentMakerV1.FileServer()
-
-			exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
-				cfg.ExportNetworkEnvVars = true
+			skipLocket := func(cfg *bbsconfig.BBSConfig) {
+				cfg.ClientLocketConfig.LocketAddress = ""
 			}
+			fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
+				cfg.AuctioneerRequireTLS = false
+			}
+			bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
+		})
 
-			plumbing = ginkgomon.Invoke(grouper.NewParallel(os.Kill, grouper.Members{
-				{Name: "nats", Runner: ComponentMakerV1.NATS()},
-				{Name: "sql", Runner: ComponentMakerV1.SQL()},
-				{Name: "consul", Runner: ComponentMakerV1.Consul()},
-				{Name: "file-server", Runner: fileServer},
-				{Name: "garden", Runner: ComponentMakerV1.Garden()},
-				{Name: "router", Runner: ComponentMakerV1.Router()},
-			}))
+		It("runs vizzini successfully", func() {
+			runVizziniTests(bbsClientGoPathEnvVar, "should allow access to an internal IP")
+		})
+	})
+
+	Context("upgrading the BBS API and BBS client", func() {
+		BeforeEach(func() {
+			bbsClientGoPathEnvVar = "GOPATH"
 
 			skipLocket := func(cfg *bbsconfig.BBSConfig) {
 				cfg.ClientLocketConfig.LocketAddress = ""
@@ -56,81 +119,93 @@ var _ = Describe("Dusts", func() {
 			fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
 				cfg.AuctioneerRequireTLS = false
 			}
-			bbs = ginkgomon.Invoke(ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer))
-
-			routeEmitter = ginkgomon.Invoke(ComponentMakerV0.RouteEmitter())
-			auctioneer = ginkgomon.Invoke(ComponentMakerV0.Auctioneer())
-
-			rep = ginkgomon.Invoke(ComponentMakerV0.Rep(exportNetworkConfigs))
-
-			sshProxy = ginkgomon.Invoke(ComponentMakerV0.SSHProxy())
-
-			helpers.ConsulWaitUntilReady(ComponentMakerV0.Addresses())
-		})
-
-		AfterEach(func() {
-			destroyContainerErrors := helpers.CleanupGarden(ComponentMakerV1.GardenClient())
-
-			helpers.StopProcesses(
-				bbs,
-				auctioneer,
-				rep,
-				routeEmitter,
-				sshProxy,
-				plumbing,
-			)
-
-			Expect(destroyContainerErrors).To(
-				BeEmpty(),
-				"%d containers failed to be destroyed!",
-				len(destroyContainerErrors),
-			)
+			bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
 		})
 
 		It("runs vizzini successfully", func() {
-			By("with BBS and BBS client at v1")
-			{
-				runVizziniTests(repV0UnsupportedVizziniTests...)
+			runVizziniTests(bbsClientGoPathEnvVar, repV0UnsupportedVizziniTests...)
+		})
+	})
+
+	Context("upgrading the BBS API, BBS client, sshProxy, and Auctioneer", func() {
+		BeforeEach(func() {
+			bbsClientGoPathEnvVar = "GOPATH"
+			skipLocket := func(cfg *bbsconfig.BBSConfig) {
+				cfg.ClientLocketConfig.LocketAddress = ""
 			}
-
-			By("upgrading the auctioneer and ssh-proxy")
-			{
-				ginkgomon.Interrupt(auctioneer, 5*time.Second)
-				ginkgomon.Interrupt(sshProxy, 5*time.Second)
-				auctioneer = ginkgomon.Invoke(ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
-					cfg.ClientLocketConfig.LocketAddress = ""
-				}))
-				sshProxy = ginkgomon.Invoke(ComponentMakerV1.SSHProxy())
-
-				runVizziniTests(repV0UnsupportedVizziniTests...)
+			fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
+				cfg.AuctioneerRequireTLS = false
 			}
+			bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
+			auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
+				cfg.ClientLocketConfig.LocketAddress = ""
+			})
+			sshProxyRunner = ComponentMakerV1.SSHProxy()
+		})
 
-			By("upgrading the cell")
-			{
-				exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
-					cfg.ExportNetworkEnvVars = true
-				}
-				ginkgomon.Interrupt(rep, 5*time.Second)
-				rep = ginkgomon.Invoke(ComponentMakerV1.Rep(exportNetworkConfigs))
+		It("runs vizzini successfully", func() {
+			runVizziniTests(bbsClientGoPathEnvVar, repV0UnsupportedVizziniTests...)
+		})
+	})
 
-				runVizziniTests()
+	Context("upgrading the BBS API, BBS client, sshProxy, Auctioneer, and Rep", func() {
+		BeforeEach(func() {
+			bbsClientGoPathEnvVar = "GOPATH"
+			skipLocket := func(cfg *bbsconfig.BBSConfig) {
+				cfg.ClientLocketConfig.LocketAddress = ""
 			}
-
-			By("upgrading the route emitter")
-			{
-				ginkgomon.Interrupt(routeEmitter, 5*time.Second)
-				routeEmitter = ginkgomon.Invoke(ComponentMakerV1.RouteEmitter())
-
-				runVizziniTests()
+			fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
+				cfg.AuctioneerRequireTLS = false
 			}
+			bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
+			auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
+				cfg.ClientLocketConfig.LocketAddress = ""
+			})
+			sshProxyRunner = ComponentMakerV1.SSHProxy()
+
+			exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
+				cfg.ExportNetworkEnvVars = true
+			}
+			repRunner = ComponentMakerV1.Rep(exportNetworkConfigs)
+		})
+
+		It("runs vizzini successfully", func() {
+			runVizziniTests(bbsClientGoPathEnvVar)
+		})
+	})
+
+	Context("upgrading the BBS API, BBS client, sshProxy, Auctioneer, Rep, and Route Emitter", func() {
+		BeforeEach(func() {
+			bbsClientGoPathEnvVar = "GOPATH"
+			skipLocket := func(cfg *bbsconfig.BBSConfig) {
+				cfg.ClientLocketConfig.LocketAddress = ""
+			}
+			fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
+				cfg.AuctioneerRequireTLS = false
+			}
+			bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
+			auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
+				cfg.ClientLocketConfig.LocketAddress = ""
+			})
+			sshProxyRunner = ComponentMakerV1.SSHProxy()
+
+			exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
+				cfg.ExportNetworkEnvVars = true
+			}
+			repRunner = ComponentMakerV1.Rep(exportNetworkConfigs)
+			routeEmitterRunner = ComponentMakerV1.RouteEmitter()
+		})
+
+		It("runs vizzini successfully", func() {
+			runVizziniTests(bbsClientGoPathEnvVar)
 		})
 	})
 })
 
-func runVizziniTests(skips ...string) {
+func runVizziniTests(gopathEnvVar string, skips ...string) {
 	ip, err := localip.LocalIP()
 	Expect(err).NotTo(HaveOccurred())
-	vizziniPath := filepath.Join(os.Getenv("GOPATH"), "src/code.cloudfoundry.org/vizzini")
+	vizziniPath := filepath.Join(os.Getenv(gopathEnvVar), "src/code.cloudfoundry.org/vizzini")
 	flags := []string{
 		"-nodes", "2",
 		"-randomizeAllSpecs",
