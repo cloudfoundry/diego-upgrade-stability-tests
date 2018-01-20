@@ -21,8 +21,17 @@ import (
 	"testing"
 )
 
+const (
+	diegoGAVersion            = "v1.0.0"
+	diegoLocketLocalREVersion = "v1.25.2"
+)
+
 var (
 	ComponentMakerV0, ComponentMakerV1 world.ComponentMaker
+
+	oldArtifacts, newArtifacts world.BuiltArtifacts
+	addresses                  world.ComponentAddresses
+	upgrader                   Upgrader
 
 	bbsClient        bbs.InternalClient
 	bbsServiceClient serviceclient.ServiceClient
@@ -65,10 +74,13 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	err := json.Unmarshal(payload, &artifacts)
 	Expect(err).NotTo(HaveOccurred())
 
+	newArtifacts = artifacts["new"]
+	oldArtifacts = artifacts["old"]
+
 	_, dbBaseConnectionString := world.DBInfo()
 
 	// TODO: the hard coded addresses for router and file server prevent running multiple dusts tests at the same time
-	addresses := world.ComponentAddresses{
+	addresses = world.ComponentAddresses{
 		GardenLinux:         fmt.Sprintf("127.0.0.1:%d", 10000+config.GinkgoConfig.ParallelNode),
 		NATS:                fmt.Sprintf("127.0.0.1:%d", 11000+config.GinkgoConfig.ParallelNode),
 		Consul:              fmt.Sprintf("127.0.0.1:%d", 12750+config.GinkgoConfig.ParallelNode*consulrunner.PortOffsetLength),
@@ -86,9 +98,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		SQL:                 fmt.Sprintf("%sdiego_%d", dbBaseConnectionString, config.GinkgoConfig.ParallelNode),
 	}
 
-	ComponentMakerV0 = world.MakeV0ComponentMaker("fixtures/certs/", artifacts["old"], addresses)
 	ComponentMakerV1 = world.MakeComponentMaker("fixtures/certs/", artifacts["new"], addresses)
-
 	ComponentMakerV1.GrootFSInitStore()
 })
 
@@ -142,6 +152,10 @@ func compileTestedExecutablesV0() world.BuiltExecutables {
 	builtExecutables["bbs"] = lazyBuild(binariesPath, os.Getenv("BBS_GOPATH_V0"), "code.cloudfoundry.org/bbs/cmd/bbs", "-race")
 	builtExecutables["route-emitter"] = lazyBuild(binariesPath, os.Getenv("ROUTE_EMITTER_GOPATH_V0"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
 	builtExecutables["ssh-proxy"] = lazyBuild(binariesPath, os.Getenv("SSH_PROXY_GOPATH_V0"), "code.cloudfoundry.org/diego-ssh/cmd/ssh-proxy", "-race")
+
+	if os.Getenv("DIEGO_VERSION_V0") == "v1.25.2" {
+		builtExecutables["locket"] = lazyBuild(binariesPath, os.Getenv("GOPATH_V0"), "code.cloudfoundry.org/locket/cmd/locket", "-race")
+	}
 
 	os.Setenv("CGO_ENABLED", "0")
 	builtExecutables["sshd"] = lazyBuild(binariesPath, os.Getenv("SSHD_GOPATH_V0"), "code.cloudfoundry.org/diego-ssh/cmd/sshd", "-a", "-installsuffix", "static")

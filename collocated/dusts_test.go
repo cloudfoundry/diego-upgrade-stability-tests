@@ -9,6 +9,7 @@ import (
 	auctioneerconfig "code.cloudfoundry.org/auctioneer/cmd/auctioneer/config"
 	bbsconfig "code.cloudfoundry.org/bbs/cmd/bbs/config"
 	"code.cloudfoundry.org/inigo/helpers"
+	"code.cloudfoundry.org/inigo/world"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/localip"
 	repconfig "code.cloudfoundry.org/rep/cmd/rep/config"
@@ -23,7 +24,7 @@ var (
 	repV0UnsupportedVizziniTests = []string{"MaxPids", "CF_INSTANCE_INTERNAL_IP"}
 )
 
-var _ = Describe("Dusts", func() {
+var _ = Describe("UpgradeVizzini", func() {
 	var (
 		plumbing                                     ifrit.Process
 		bbs, routeEmitter, sshProxy, auctioneer, rep ifrit.Process
@@ -40,6 +41,8 @@ var _ = Describe("Dusts", func() {
 		logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
 
 		bbsClientGoPathEnvVar = "GOPATH_V0"
+
+		ComponentMakerV0 = world.MakeV0ComponentMaker("fixtures/certs/", oldArtifacts, addresses)
 
 		fileServer, _ := ComponentMakerV1.FileServer()
 
