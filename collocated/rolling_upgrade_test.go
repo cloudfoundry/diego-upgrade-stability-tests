@@ -53,7 +53,7 @@ var _ = Describe("RollingUpgrade", func() {
 				ComponentMakerV0 = world.MakeV0ComponentMaker("fixtures/certs/", oldArtifacts, addresses)
 				upgrader = NewGAUpgrader()
 			case diegoLocketLocalREVersion:
-				ComponentMakerV0 = world.MakeComponentMaker("fixtures/certs/", newArtifacts, addresses)
+				ComponentMakerV0 = world.MakeComponentMaker("fixtures/certs/", oldArtifacts, addresses)
 				upgrader = NewLocketLocalREUpgrader()
 			default:
 				Skip("DIEGO_VERSION_V0 not set")
