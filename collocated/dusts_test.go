@@ -1,9 +1,11 @@
 package dusts_test
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	auctioneerconfig "code.cloudfoundry.org/auctioneer/cmd/auctioneer/config"
@@ -13,6 +15,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/localip"
 	repconfig "code.cloudfoundry.org/rep/cmd/rep/config"
+	routeemitterconfig "code.cloudfoundry.org/route-emitter/cmd/route-emitter/config"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
@@ -22,187 +25,365 @@ import (
 
 var (
 	repV0UnsupportedVizziniTests = []string{"MaxPids", "CF_INSTANCE_INTERNAL_IP"}
+	// security_group_tests in V0 vizzini won't pass since they try to access the
+	// router (as opposed to www.example.com in recent versions). Security groups
+	// don't affect access to the host machine, therefore they cannot block
+	// traffic which causes both tests in that file to fail
+	securityGroupV0Tests = "should allow access to an internal IP"
 )
 
 var _ = Describe("UpgradeVizzini", func() {
 	var (
-		plumbing                                     ifrit.Process
-		bbs, routeEmitter, sshProxy, auctioneer, rep ifrit.Process
-		bbsRunner                                    ifrit.Runner
-		routeEmitterRunner                           ifrit.Runner
-		sshProxyRunner                               ifrit.Runner
-		auctioneerRunner                             ifrit.Runner
-		repRunner                                    ifrit.Runner
-		bbsClientGoPathEnvVar                        string
+		plumbing                                             ifrit.Process
+		locket, bbs, routeEmitter, sshProxy, auctioneer, rep ifrit.Process
+		locketRunner                                         ifrit.Runner
+		bbsRunner                                            ifrit.Runner
+		routeEmitterRunner                                   ifrit.Runner
+		sshProxyRunner                                       ifrit.Runner
+		auctioneerRunner                                     ifrit.Runner
+		repRunner                                            ifrit.Runner
+		bbsClientGoPathEnvVar                                string
+		setRouteEmitterCellID                                func(config *routeemitterconfig.RouteEmitterConfig)
 	)
 
-	BeforeEach(func() {
-		logger = lager.NewLogger("test")
-		logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
+	if os.Getenv("DIEGO_VERSION_V0") == diegoGAVersion {
+		Context(fmt.Sprintf("from %s", diegoGAVersion), func() {
+			BeforeEach(func() {
+				logger = lager.NewLogger("test")
+				logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
 
-		bbsClientGoPathEnvVar = "GOPATH_V0"
+				bbsClientGoPathEnvVar = "GOPATH_V0"
 
-		ComponentMakerV0 = world.MakeV0ComponentMaker("fixtures/certs/", oldArtifacts, addresses)
+				ComponentMakerV0 = world.MakeV0ComponentMaker("fixtures/certs/", oldArtifacts, addresses)
 
-		fileServer, _ := ComponentMakerV1.FileServer()
+				fileServer, _ := ComponentMakerV1.FileServer()
 
-		plumbing = ginkgomon.Invoke(grouper.NewParallel(os.Kill, grouper.Members{
-			{Name: "nats", Runner: ComponentMakerV1.NATS()},
-			{Name: "sql", Runner: ComponentMakerV1.SQL()},
-			{Name: "consul", Runner: ComponentMakerV1.Consul()},
-			{Name: "file-server", Runner: fileServer},
-			{Name: "garden", Runner: ComponentMakerV1.Garden()},
-			{Name: "router", Runner: ComponentMakerV1.Router()},
-		}))
-		helpers.ConsulWaitUntilReady(ComponentMakerV0.Addresses())
+				plumbing = ginkgomon.Invoke(grouper.NewParallel(os.Kill, grouper.Members{
+					{Name: "nats", Runner: ComponentMakerV1.NATS()},
+					{Name: "sql", Runner: ComponentMakerV1.SQL()},
+					{Name: "consul", Runner: ComponentMakerV1.Consul()},
+					{Name: "file-server", Runner: fileServer},
+					// {Name: "garden", Runner: ComponentMakerV1.Garden()},
+					{Name: "router", Runner: ComponentMakerV1.Router()},
+				}))
+				helpers.ConsulWaitUntilReady(ComponentMakerV0.Addresses())
 
-		bbsRunner = ComponentMakerV0.BBS()
-		routeEmitterRunner = ComponentMakerV0.RouteEmitter()
-		auctioneerRunner = ComponentMakerV0.Auctioneer()
-		repRunner = ComponentMakerV0.Rep()
-		sshProxyRunner = ComponentMakerV0.SSHProxy()
-	})
-
-	JustBeforeEach(func() {
-		bbs = ginkgomon.Invoke(bbsRunner)
-		routeEmitter = ginkgomon.Invoke(routeEmitterRunner)
-		auctioneer = ginkgomon.Invoke(auctioneerRunner)
-		rep = ginkgomon.Invoke(repRunner)
-		sshProxy = ginkgomon.Invoke(sshProxyRunner)
-	})
-
-	AfterEach(func() {
-		destroyContainerErrors := helpers.CleanupGarden(ComponentMakerV1.GardenClient())
-
-		helpers.StopProcesses(
-			bbs,
-			auctioneer,
-			rep,
-			routeEmitter,
-			sshProxy,
-			plumbing,
-		)
-
-		Expect(destroyContainerErrors).To(
-			BeEmpty(),
-			"%d containers failed to be destroyed!",
-			len(destroyContainerErrors),
-		)
-	})
-
-	Context("v0 configuration", func() {
-		It("runs vizzini successfully", func() {
-			runVizziniTests(bbsClientGoPathEnvVar, "should allow access to an internal IP")
-		})
-	})
-
-	Context("upgrading the BBS API", func() {
-		BeforeEach(func() {
-			skipLocket := func(cfg *bbsconfig.BBSConfig) {
-				cfg.ClientLocketConfig.LocketAddress = ""
-			}
-			fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
-				cfg.AuctioneerRequireTLS = false
-			}
-			bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
-		})
-
-		It("runs vizzini successfully", func() {
-			runVizziniTests(bbsClientGoPathEnvVar, "should allow access to an internal IP")
-		})
-	})
-
-	Context("upgrading the BBS API and BBS client", func() {
-		BeforeEach(func() {
-			bbsClientGoPathEnvVar = "GOPATH"
-
-			skipLocket := func(cfg *bbsconfig.BBSConfig) {
-				cfg.ClientLocketConfig.LocketAddress = ""
-			}
-			fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
-				cfg.AuctioneerRequireTLS = false
-			}
-			bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
-		})
-
-		It("runs vizzini successfully", func() {
-			runVizziniTests(bbsClientGoPathEnvVar, repV0UnsupportedVizziniTests...)
-		})
-	})
-
-	Context("upgrading the BBS API, BBS client, sshProxy, and Auctioneer", func() {
-		BeforeEach(func() {
-			bbsClientGoPathEnvVar = "GOPATH"
-			skipLocket := func(cfg *bbsconfig.BBSConfig) {
-				cfg.ClientLocketConfig.LocketAddress = ""
-			}
-			fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
-				cfg.AuctioneerRequireTLS = false
-			}
-			bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
-			auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
-				cfg.ClientLocketConfig.LocketAddress = ""
+				bbsRunner = ComponentMakerV0.BBS()
+				routeEmitterRunner = ComponentMakerV0.RouteEmitter()
+				auctioneerRunner = ComponentMakerV0.Auctioneer()
+				repRunner = ComponentMakerV0.Rep()
+				sshProxyRunner = ComponentMakerV0.SSHProxy()
 			})
-			sshProxyRunner = ComponentMakerV1.SSHProxy()
-		})
 
-		It("runs vizzini successfully", func() {
-			runVizziniTests(bbsClientGoPathEnvVar, repV0UnsupportedVizziniTests...)
-		})
-	})
-
-	Context("upgrading the BBS API, BBS client, sshProxy, Auctioneer, and Rep", func() {
-		BeforeEach(func() {
-			bbsClientGoPathEnvVar = "GOPATH"
-			skipLocket := func(cfg *bbsconfig.BBSConfig) {
-				cfg.ClientLocketConfig.LocketAddress = ""
-			}
-			fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
-				cfg.AuctioneerRequireTLS = false
-			}
-			bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
-			auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
-				cfg.ClientLocketConfig.LocketAddress = ""
+			JustBeforeEach(func() {
+				ginkgomon.Invoke(ComponentMakerV1.Garden())
+				bbs = ginkgomon.Invoke(bbsRunner)
+				routeEmitter = ginkgomon.Invoke(routeEmitterRunner)
+				auctioneer = ginkgomon.Invoke(auctioneerRunner)
+				rep = ginkgomon.Invoke(repRunner)
+				sshProxy = ginkgomon.Invoke(sshProxyRunner)
 			})
-			sshProxyRunner = ComponentMakerV1.SSHProxy()
 
-			exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
-				cfg.ExportNetworkEnvVars = true
-			}
-			repRunner = ComponentMakerV1.Rep(exportNetworkConfigs)
-		})
+			AfterEach(func() {
+				destroyContainerErrors := helpers.CleanupGarden(ComponentMakerV1.GardenClient())
 
-		It("runs vizzini successfully", func() {
-			runVizziniTests(bbsClientGoPathEnvVar)
-		})
-	})
+				helpers.StopProcesses(
+					bbs,
+					auctioneer,
+					rep,
+					routeEmitter,
+					sshProxy,
+					plumbing,
+				)
 
-	Context("upgrading the BBS API, BBS client, sshProxy, Auctioneer, Rep, and Route Emitter", func() {
-		BeforeEach(func() {
-			bbsClientGoPathEnvVar = "GOPATH"
-			skipLocket := func(cfg *bbsconfig.BBSConfig) {
-				cfg.ClientLocketConfig.LocketAddress = ""
-			}
-			fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
-				cfg.AuctioneerRequireTLS = false
-			}
-			bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
-			auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
-				cfg.ClientLocketConfig.LocketAddress = ""
+				Expect(destroyContainerErrors).To(
+					BeEmpty(),
+					"%d containers failed to be destroyed!",
+					len(destroyContainerErrors),
+				)
 			})
-			sshProxyRunner = ComponentMakerV1.SSHProxy()
 
-			exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
-				cfg.ExportNetworkEnvVars = true
-			}
-			repRunner = ComponentMakerV1.Rep(exportNetworkConfigs)
-			routeEmitterRunner = ComponentMakerV1.RouteEmitter()
-		})
+			Context("v0 configuration", func() {
+				It("runs vizzini successfully", func() {
+					runVizziniTests(bbsClientGoPathEnvVar, securityGroupV0Tests)
+				})
+			})
 
-		It("runs vizzini successfully", func() {
-			runVizziniTests(bbsClientGoPathEnvVar)
+			Context("upgrading the BBS API", func() {
+				BeforeEach(func() {
+					skipLocket := func(cfg *bbsconfig.BBSConfig) {
+						cfg.ClientLocketConfig.LocketAddress = ""
+					}
+					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
+						cfg.AuctioneerRequireTLS = false
+					}
+					bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
+				})
+
+				It("runs vizzini successfully", func() {
+					runVizziniTests(bbsClientGoPathEnvVar, securityGroupV0Tests)
+				})
+			})
+
+			Context("upgrading the BBS API and BBS client", func() {
+				BeforeEach(func() {
+					bbsClientGoPathEnvVar = "GOPATH"
+
+					skipLocket := func(cfg *bbsconfig.BBSConfig) {
+						cfg.ClientLocketConfig.LocketAddress = ""
+					}
+					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
+						cfg.AuctioneerRequireTLS = false
+					}
+					bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
+				})
+
+				It("runs vizzini successfully", func() {
+					runVizziniTests(bbsClientGoPathEnvVar, repV0UnsupportedVizziniTests...)
+				})
+			})
+
+			Context("upgrading the BBS API, BBS client, sshProxy, and Auctioneer", func() {
+				BeforeEach(func() {
+					bbsClientGoPathEnvVar = "GOPATH"
+					skipLocket := func(cfg *bbsconfig.BBSConfig) {
+						cfg.ClientLocketConfig.LocketAddress = ""
+					}
+					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
+						cfg.AuctioneerRequireTLS = false
+					}
+					bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
+					auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
+						cfg.ClientLocketConfig.LocketAddress = ""
+					})
+					sshProxyRunner = ComponentMakerV1.SSHProxy()
+				})
+
+				It("runs vizzini successfully", func() {
+					runVizziniTests(bbsClientGoPathEnvVar, repV0UnsupportedVizziniTests...)
+				})
+			})
+
+			Context("upgrading the BBS API, BBS client, sshProxy, Auctioneer, and Rep", func() {
+				BeforeEach(func() {
+					bbsClientGoPathEnvVar = "GOPATH"
+					skipLocket := func(cfg *bbsconfig.BBSConfig) {
+						cfg.ClientLocketConfig.LocketAddress = ""
+					}
+					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
+						cfg.AuctioneerRequireTLS = false
+					}
+					bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
+					auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
+						cfg.ClientLocketConfig.LocketAddress = ""
+					})
+					sshProxyRunner = ComponentMakerV1.SSHProxy()
+
+					exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
+						cfg.ExportNetworkEnvVars = true
+					}
+					repRunner = ComponentMakerV1.Rep(exportNetworkConfigs)
+				})
+
+				It("runs vizzini successfully", func() {
+					runVizziniTests(bbsClientGoPathEnvVar)
+				})
+			})
+
+			Context("upgrading the BBS API, BBS client, sshProxy, Auctioneer, Rep, and Route Emitter", func() {
+				BeforeEach(func() {
+					bbsClientGoPathEnvVar = "GOPATH"
+					skipLocket := func(cfg *bbsconfig.BBSConfig) {
+						cfg.ClientLocketConfig.LocketAddress = ""
+					}
+					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
+						cfg.AuctioneerRequireTLS = false
+					}
+					bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
+					auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
+						cfg.ClientLocketConfig.LocketAddress = ""
+					})
+					sshProxyRunner = ComponentMakerV1.SSHProxy()
+
+					exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
+						cfg.ExportNetworkEnvVars = true
+					}
+					repRunner = ComponentMakerV1.Rep(exportNetworkConfigs)
+					routeEmitterRunner = ComponentMakerV1.RouteEmitter()
+				})
+
+				It("runs vizzini successfully", func() {
+					runVizziniTests(bbsClientGoPathEnvVar)
+				})
+			})
 		})
-	})
+	} else if os.Getenv("DIEGO_VERSION_V0") == diegoLocketLocalREVersion {
+		Context(fmt.Sprintf("from %s", diegoLocketLocalREVersion), func() {
+			BeforeEach(func() {
+				logger = lager.NewLogger("test")
+				logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
+
+				bbsClientGoPathEnvVar = "GOPATH_V0"
+
+				ComponentMakerV0 = world.MakeComponentMaker("fixtures/certs/", oldArtifacts, addresses)
+
+				fileServer, _ := ComponentMakerV1.FileServer()
+
+				plumbing = ginkgomon.Invoke(grouper.NewParallel(os.Kill, grouper.Members{
+					{Name: "nats", Runner: ComponentMakerV1.NATS()},
+					{Name: "sql", Runner: ComponentMakerV1.SQL()},
+					{Name: "consul", Runner: ComponentMakerV1.Consul()},
+					{Name: "file-server", Runner: fileServer},
+					{Name: "garden", Runner: ComponentMakerV1.Garden()},
+					{Name: "router", Runner: ComponentMakerV1.Router()},
+				}))
+				helpers.ConsulWaitUntilReady(ComponentMakerV0.Addresses())
+
+				locketRunner = ComponentMakerV0.Locket()
+				bbsRunner = ComponentMakerV0.BBS()
+				setRouteEmitterCellID = func(config *routeemitterconfig.RouteEmitterConfig) {
+					config.CellID = "the-cell-id-" + strconv.Itoa(GinkgoParallelNode()) + "-" + strconv.Itoa(0)
+				}
+				routeEmitterRunner = ComponentMakerV0.RouteEmitterN(0, setRouteEmitterCellID)
+				auctioneerRunner = ComponentMakerV0.Auctioneer()
+				repRunner = ComponentMakerV0.Rep(func(cfg *repconfig.RepConfig) {
+					cfg.ExportNetworkEnvVars = true
+				})
+				sshProxyRunner = ComponentMakerV0.SSHProxy()
+			})
+
+			JustBeforeEach(func() {
+				locket = ginkgomon.Invoke(locketRunner)
+				bbs = ginkgomon.Invoke(bbsRunner)
+				routeEmitter = ginkgomon.Invoke(routeEmitterRunner)
+				auctioneer = ginkgomon.Invoke(auctioneerRunner)
+				rep = ginkgomon.Invoke(repRunner)
+				sshProxy = ginkgomon.Invoke(sshProxyRunner)
+			})
+
+			AfterEach(func() {
+				destroyContainerErrors := helpers.CleanupGarden(ComponentMakerV1.GardenClient())
+
+				helpers.StopProcesses(
+					locket,
+					bbs,
+					auctioneer,
+					rep,
+					routeEmitter,
+					sshProxy,
+					plumbing,
+				)
+
+				Expect(destroyContainerErrors).To(
+					BeEmpty(),
+					"%d containers failed to be destroyed!",
+					len(destroyContainerErrors),
+				)
+			})
+
+			Context("v0 configuration", func() {
+				It("runs vizzini successfully", func() {
+					runVizziniTests(bbsClientGoPathEnvVar, securityGroupV0Tests)
+				})
+			})
+
+			Context("upgrading the Locket API", func() {
+				BeforeEach(func() {
+					locketRunner = ComponentMakerV1.Locket()
+				})
+
+				It("runs vizzini successfully", func() {
+					runVizziniTests(bbsClientGoPathEnvVar, securityGroupV0Tests)
+				})
+			})
+
+			Context("upgrading the BBS API", func() {
+				BeforeEach(func() {
+					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
+						cfg.AuctioneerRequireTLS = false
+					}
+					bbsRunner = ComponentMakerV1.BBS(fallbackToHTTPAuctioneer)
+				})
+
+				It("runs vizzini successfully", func() {
+					runVizziniTests(bbsClientGoPathEnvVar, securityGroupV0Tests)
+				})
+			})
+
+			Context("upgrading the Locket and BBS API", func() {
+				BeforeEach(func() {
+					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
+						cfg.AuctioneerRequireTLS = false
+					}
+					locketRunner = ComponentMakerV1.Locket()
+					bbsRunner = ComponentMakerV1.BBS(fallbackToHTTPAuctioneer)
+				})
+
+				It("runs vizzini successfully", func() {
+					runVizziniTests(bbsClientGoPathEnvVar, securityGroupV0Tests)
+				})
+			})
+
+			Context("upgrading the Locket, BBS API and BBS client", func() {
+				BeforeEach(func() {
+					bbsClientGoPathEnvVar = "GOPATH"
+					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
+						cfg.AuctioneerRequireTLS = false
+					}
+					locketRunner = ComponentMakerV1.Locket()
+					bbsRunner = ComponentMakerV1.BBS(fallbackToHTTPAuctioneer)
+				})
+
+				It("runs vizzini successfully", func() {
+					runVizziniTests(bbsClientGoPathEnvVar, repV0UnsupportedVizziniTests...)
+				})
+			})
+
+			Context("upgrading the Locket, BBS API, BBS client, sshProxy, and Auctioneer", func() {
+				BeforeEach(func() {
+					bbsClientGoPathEnvVar = "GOPATH"
+					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
+						cfg.AuctioneerRequireTLS = false
+					}
+					locketRunner = ComponentMakerV1.Locket()
+					bbsRunner = ComponentMakerV1.BBS(fallbackToHTTPAuctioneer)
+					auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
+						cfg.ClientLocketConfig.LocketAddress = ""
+					})
+					sshProxyRunner = ComponentMakerV1.SSHProxy()
+				})
+
+				It("runs vizzini successfully", func() {
+					runVizziniTests(bbsClientGoPathEnvVar, repV0UnsupportedVizziniTests...)
+				})
+			})
+
+			Context("upgrading the Locket, BBS API, BBS client, sshProxy, Auctioneer, and Rep", func() {
+				BeforeEach(func() {
+					bbsClientGoPathEnvVar = "GOPATH"
+					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
+						cfg.AuctioneerRequireTLS = false
+					}
+					locketRunner = ComponentMakerV1.Locket()
+					bbsRunner = ComponentMakerV1.BBS(fallbackToHTTPAuctioneer)
+					auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
+						cfg.ClientLocketConfig.LocketAddress = ""
+					})
+					sshProxyRunner = ComponentMakerV1.SSHProxy()
+
+					exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
+						cfg.ExportNetworkEnvVars = true
+					}
+					repRunner = ComponentMakerV1.Rep(exportNetworkConfigs)
+					routeEmitterRunner = ComponentMakerV1.RouteEmitterN(0, setRouteEmitterCellID)
+				})
+
+				It("runs vizzini successfully", func() {
+					runVizziniTests(bbsClientGoPathEnvVar)
+				})
+			})
+		})
+	}
 })
 
 func runVizziniTests(gopathEnvVar string, skips ...string) {

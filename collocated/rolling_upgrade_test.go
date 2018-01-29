@@ -55,8 +55,6 @@ var _ = Describe("RollingUpgrade", func() {
 			case diegoLocketLocalREVersion:
 				ComponentMakerV0 = world.MakeComponentMaker("fixtures/certs/", oldArtifacts, addresses)
 				upgrader = NewLocketLocalREUpgrader()
-			default:
-				Skip("DIEGO_VERSION_V0 not set")
 			}
 
 			logger = lager.NewLogger("test")

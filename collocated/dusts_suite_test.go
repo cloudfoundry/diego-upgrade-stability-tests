@@ -45,6 +45,10 @@ func TestDusts(t *testing.T) {
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
+	if version := os.Getenv("DIEGO_VERSION_V0"); version != diegoGAVersion && version != diegoLocketLocalREVersion {
+		Fail("DIEGO_VERSION_V0 not set")
+	}
+
 	artifacts := make(map[string]world.BuiltArtifacts)
 	oldArtifacts := world.BuiltArtifacts{
 		Lifecycles: world.BuiltLifecycles{},
@@ -103,7 +107,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 })
 
 var _ = AfterSuite(func() {
-	ComponentMakerV1.GrootFSDeleteStore()
+	if ComponentMakerV1 != nil {
+		ComponentMakerV1.GrootFSDeleteStore()
+	}
 })
 
 func lazyBuild(binariesPath, gopath, packagePath string, args ...string) string {
@@ -153,7 +159,7 @@ func compileTestedExecutablesV0() world.BuiltExecutables {
 	builtExecutables["route-emitter"] = lazyBuild(binariesPath, os.Getenv("ROUTE_EMITTER_GOPATH_V0"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
 	builtExecutables["ssh-proxy"] = lazyBuild(binariesPath, os.Getenv("SSH_PROXY_GOPATH_V0"), "code.cloudfoundry.org/diego-ssh/cmd/ssh-proxy", "-race")
 
-	if os.Getenv("DIEGO_VERSION_V0") == "v1.25.2" {
+	if os.Getenv("DIEGO_VERSION_V0") == diegoLocketLocalREVersion {
 		builtExecutables["locket"] = lazyBuild(binariesPath, os.Getenv("GOPATH_V0"), "code.cloudfoundry.org/locket/cmd/locket", "-race")
 	}
 
