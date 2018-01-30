@@ -396,6 +396,7 @@ func runVizziniTests(gopathEnvVar string, skips ...string) {
 		"-r",
 		"-slowSpecThreshold", "60",
 		"-skip", strings.Join(skips, "|"),
+		"-failFast",
 		"--",
 		"-bbs-address", "https://" + ComponentMakerV1.Addresses().BBS,
 		"-bbs-client-cert", ComponentMakerV1.BBSSSLConfig().ClientCert,
