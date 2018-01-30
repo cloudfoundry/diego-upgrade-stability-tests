@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"code.cloudfoundry.org/inigo/helpers"
 	"code.cloudfoundry.org/lager"
@@ -78,6 +79,7 @@ func (c *poller) pollWithRetries() (int, error) {
 		switch status {
 		case http.StatusNotFound:
 			c.logger.Info("poller-status-not-found", lager.Data{"status": status, "error": err, "retry": retry})
+			time.Sleep(100 * time.Millisecond)
 			continue
 		default:
 			c.logger.Info("poller-exit-status", lager.Data{"status": status, "error": err, "retry": retry})
