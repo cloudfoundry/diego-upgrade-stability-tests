@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/bbs/serviceclient"
 	"code.cloudfoundry.org/consuladapter/consulrunner"
 	"code.cloudfoundry.org/inigo/helpers"
+	"code.cloudfoundry.org/inigo/helpers/portauthority"
 	"code.cloudfoundry.org/inigo/world"
 	"code.cloudfoundry.org/lager"
 	. "github.com/onsi/ginkgo"
@@ -36,6 +37,7 @@ var (
 	bbsClient        bbs.InternalClient
 	bbsServiceClient serviceclient.ServiceClient
 	logger           lager.Logger
+	allocator        portauthority.PortAllocator
 )
 
 func TestDusts(t *testing.T) {
@@ -102,7 +104,15 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		SQL:                 fmt.Sprintf("%sdiego_%d", dbBaseConnectionString, config.GinkgoConfig.ParallelNode),
 	}
 
-	ComponentMakerV1 = world.MakeComponentMaker("fixtures/certs/", artifacts["new"], addresses)
+	node := GinkgoParallelNode()
+	startPort := 1000 * node
+	portRange := 200
+	endPort := startPort + portRange*(node+1)
+
+	allocator, err = portauthority.New(startPort, endPort)
+	Expect(err).NotTo(HaveOccurred())
+
+	ComponentMakerV1 = world.MakeComponentMaker("fixtures/certs/", artifacts["new"], addresses, allocator)
 	ComponentMakerV1.GrootFSInitStore()
 })
 

@@ -54,7 +54,7 @@ var _ = Describe("UpgradeVizzini", func() {
 
 				bbsClientGoPathEnvVar = "GOPATH_V0"
 
-				ComponentMakerV0 = world.MakeV0ComponentMaker("fixtures/certs/", oldArtifacts, addresses)
+				ComponentMakerV0 = world.MakeV0ComponentMaker("fixtures/certs/", oldArtifacts, addresses, allocator)
 
 				fileServer, _ := ComponentMakerV1.FileServer()
 
@@ -63,7 +63,6 @@ var _ = Describe("UpgradeVizzini", func() {
 					{Name: "sql", Runner: ComponentMakerV1.SQL()},
 					{Name: "consul", Runner: ComponentMakerV1.Consul()},
 					{Name: "file-server", Runner: fileServer},
-					// {Name: "garden", Runner: ComponentMakerV1.Garden()},
 					{Name: "router", Runner: ComponentMakerV1.Router()},
 				}))
 				helpers.ConsulWaitUntilReady(ComponentMakerV0.Addresses())
@@ -225,7 +224,7 @@ var _ = Describe("UpgradeVizzini", func() {
 
 				bbsClientGoPathEnvVar = "GOPATH_V0"
 
-				ComponentMakerV0 = world.MakeComponentMaker("fixtures/certs/", oldArtifacts, addresses)
+				ComponentMakerV0 = world.MakeComponentMaker("fixtures/certs/", oldArtifacts, addresses, allocator)
 
 				fileServer, _ := ComponentMakerV1.FileServer()
 

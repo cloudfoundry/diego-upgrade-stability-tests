@@ -50,10 +50,10 @@ var _ = Describe("RollingUpgrade", func() {
 
 			switch diegoV0Version {
 			case diegoGAVersion:
-				ComponentMakerV0 = world.MakeV0ComponentMaker("fixtures/certs/", oldArtifacts, addresses)
+				ComponentMakerV0 = world.MakeV0ComponentMaker("fixtures/certs/", oldArtifacts, addresses, allocator)
 				upgrader = NewGAUpgrader()
 			case diegoLocketLocalREVersion:
-				ComponentMakerV0 = world.MakeComponentMaker("fixtures/certs/", oldArtifacts, addresses)
+				ComponentMakerV0 = world.MakeComponentMaker("fixtures/certs/", oldArtifacts, addresses, allocator)
 				upgrader = NewLocketLocalREUpgrader()
 			}
 
