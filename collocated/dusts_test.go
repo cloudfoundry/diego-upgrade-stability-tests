@@ -63,6 +63,7 @@ var _ = Describe("UpgradeVizzini", func() {
 					{Name: "sql", Runner: ComponentMakerV1.SQL()},
 					{Name: "consul", Runner: ComponentMakerV1.Consul()},
 					{Name: "file-server", Runner: fileServer},
+					{Name: "garden", Runner: ComponentMakerV1.Garden()},
 					{Name: "router", Runner: ComponentMakerV1.Router()},
 				}))
 				helpers.ConsulWaitUntilReady(ComponentMakerV0.Addresses())
@@ -75,7 +76,6 @@ var _ = Describe("UpgradeVizzini", func() {
 			})
 
 			JustBeforeEach(func() {
-				ginkgomon.Invoke(ComponentMakerV1.Garden())
 				bbs = ginkgomon.Invoke(bbsRunner)
 				routeEmitter = ginkgomon.Invoke(routeEmitterRunner)
 				auctioneer = ginkgomon.Invoke(auctioneerRunner)
