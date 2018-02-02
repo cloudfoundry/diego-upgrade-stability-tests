@@ -107,7 +107,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	node := GinkgoParallelNode()
 	startPort := 1000 * node
 	portRange := 200
-	endPort := startPort + portRange*(node+1)
+	endPort := startPort + portRange
 
 	allocator, err = portauthority.New(startPort, endPort)
 	Expect(err).NotTo(HaveOccurred())
