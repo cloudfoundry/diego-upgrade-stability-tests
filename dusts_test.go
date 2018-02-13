@@ -406,7 +406,10 @@ func runVizziniTests(gopathEnvVar string, skips ...string) {
 		"-host-address", ip,
 	}
 
+	env := os.Environ()
+	env = append(env, fmt.Sprintf("GOPATH=%s", os.Getenv(gopathEnvVar)))
 	cmd := exec.Command("ginkgo", flags...)
+	cmd.Env = env
 	cmd.Dir = vizziniPath
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
