@@ -68,14 +68,14 @@ func (ga *diegoGAUpgrader) RollingUpgrade() {
 	By("Upgrading the BBS")
 	ginkgomon.Interrupt(ga.bbs, 5*time.Second)
 	skipLocket := func(cfg *bbsconfig.BBSConfig) {
-		cfg.ClientLocketConfig.LocketAddress = ""
+		cfg.LocksLocketEnabled = false
 	}
 	ga.bbs = ginkgomon.Invoke(ComponentMakerV1.BBS(skipLocket))
 
 	By("Upgrading the Auctioneer")
 	ginkgomon.Interrupt(ga.auctioneer, 5*time.Second)
 	ga.auctioneer = ginkgomon.Invoke(ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
-		cfg.ClientLocketConfig.LocketAddress = ""
+		cfg.LocksLocketEnabled = false
 	}))
 
 	By("Upgrading the Route Emitter")

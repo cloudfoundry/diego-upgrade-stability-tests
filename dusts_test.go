@@ -111,7 +111,8 @@ var _ = Describe("UpgradeVizzini", func() {
 			Context("upgrading the BBS API", func() {
 				BeforeEach(func() {
 					skipLocket := func(cfg *bbsconfig.BBSConfig) {
-						cfg.ClientLocketConfig.LocketAddress = ""
+						cfg.LocksLocketEnabled = false
+						cfg.CellRegistrationsLocketEnabled = false
 					}
 					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
 						cfg.AuctioneerRequireTLS = false
@@ -129,7 +130,8 @@ var _ = Describe("UpgradeVizzini", func() {
 					bbsClientGoPathEnvVar = "GOPATH"
 
 					skipLocket := func(cfg *bbsconfig.BBSConfig) {
-						cfg.ClientLocketConfig.LocketAddress = ""
+						cfg.LocksLocketEnabled = false
+						cfg.CellRegistrationsLocketEnabled = false
 					}
 					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
 						cfg.AuctioneerRequireTLS = false
@@ -146,14 +148,15 @@ var _ = Describe("UpgradeVizzini", func() {
 				BeforeEach(func() {
 					bbsClientGoPathEnvVar = "GOPATH"
 					skipLocket := func(cfg *bbsconfig.BBSConfig) {
-						cfg.ClientLocketConfig.LocketAddress = ""
+						cfg.LocksLocketEnabled = false
+						cfg.CellRegistrationsLocketEnabled = false
 					}
 					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
 						cfg.AuctioneerRequireTLS = false
 					}
 					bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
 					auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
-						cfg.ClientLocketConfig.LocketAddress = ""
+						cfg.LocksLocketEnabled = false
 					})
 					sshProxyRunner = ComponentMakerV1.SSHProxy()
 				})
@@ -167,14 +170,15 @@ var _ = Describe("UpgradeVizzini", func() {
 				BeforeEach(func() {
 					bbsClientGoPathEnvVar = "GOPATH"
 					skipLocket := func(cfg *bbsconfig.BBSConfig) {
-						cfg.ClientLocketConfig.LocketAddress = ""
+						cfg.LocksLocketEnabled = false
+						cfg.CellRegistrationsLocketEnabled = false
 					}
 					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
 						cfg.AuctioneerRequireTLS = false
 					}
 					bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
 					auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
-						cfg.ClientLocketConfig.LocketAddress = ""
+						cfg.LocksLocketEnabled = false
 					})
 					sshProxyRunner = ComponentMakerV1.SSHProxy()
 
@@ -193,14 +197,15 @@ var _ = Describe("UpgradeVizzini", func() {
 				BeforeEach(func() {
 					bbsClientGoPathEnvVar = "GOPATH"
 					skipLocket := func(cfg *bbsconfig.BBSConfig) {
-						cfg.ClientLocketConfig.LocketAddress = ""
+						cfg.LocksLocketEnabled = false
+						cfg.CellRegistrationsLocketEnabled = false
 					}
 					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
 						cfg.AuctioneerRequireTLS = false
 					}
 					bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
 					auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
-						cfg.ClientLocketConfig.LocketAddress = ""
+						cfg.LocksLocketEnabled = false
 					})
 					sshProxyRunner = ComponentMakerV1.SSHProxy()
 
@@ -347,7 +352,7 @@ var _ = Describe("UpgradeVizzini", func() {
 					locketRunner = ComponentMakerV1.Locket()
 					bbsRunner = ComponentMakerV1.BBS(fallbackToHTTPAuctioneer)
 					auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
-						cfg.ClientLocketConfig.LocketAddress = ""
+						cfg.LocksLocketEnabled = false
 					})
 					sshProxyRunner = ComponentMakerV1.SSHProxy()
 				})
@@ -366,7 +371,7 @@ var _ = Describe("UpgradeVizzini", func() {
 					locketRunner = ComponentMakerV1.Locket()
 					bbsRunner = ComponentMakerV1.BBS(fallbackToHTTPAuctioneer)
 					auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
-						cfg.ClientLocketConfig.LocketAddress = ""
+						cfg.LocksLocketEnabled = false
 					})
 					sshProxyRunner = ComponentMakerV1.SSHProxy()
 
