@@ -90,11 +90,11 @@ func (ga *diegoGAUpgrader) RollingUpgrade() {
 
 func (ga *diegoGAUpgrader) ShutDown() {
 	helpers.StopProcesses(
-		ga.bbs,
 		ga.routeEmitter,
 		ga.auctioneer,
 		ga.rep0,
 		ga.rep1,
+		ga.bbs,
 	)
 }
 
@@ -138,12 +138,12 @@ func (lre *diegoLocketLocalREUpgrader) StartUp() {
 
 func (lre *diegoLocketLocalREUpgrader) ShutDown() {
 	helpers.StopProcesses(
-		lre.bbs,
 		lre.routeEmitter0,
 		lre.routeEmitter1,
 		lre.auctioneer,
 		lre.rep0,
 		lre.rep1,
+		lre.bbs,
 		lre.locket,
 	)
 }

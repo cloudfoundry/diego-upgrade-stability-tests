@@ -87,11 +87,11 @@ var _ = Describe("UpgradeVizzini", func() {
 				destroyContainerErrors := helpers.CleanupGarden(ComponentMakerV1.GardenClient())
 
 				helpers.StopProcesses(
-					bbs,
 					auctioneer,
 					rep,
 					routeEmitter,
 					sshProxy,
+					bbs,
 					plumbing,
 				)
 
@@ -269,12 +269,12 @@ var _ = Describe("UpgradeVizzini", func() {
 				destroyContainerErrors := helpers.CleanupGarden(ComponentMakerV1.GardenClient())
 
 				helpers.StopProcesses(
-					locket,
-					bbs,
 					auctioneer,
 					rep,
 					routeEmitter,
 					sshProxy,
+					bbs,
+					locket,
 					plumbing,
 				)
 
