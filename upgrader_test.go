@@ -69,6 +69,7 @@ func (ga *diegoGAUpgrader) RollingUpgrade() {
 	ginkgomon.Interrupt(ga.bbs, 5*time.Second)
 	skipLocket := func(cfg *bbsconfig.BBSConfig) {
 		cfg.LocksLocketEnabled = false
+		cfg.CellRegistrationsLocketEnabled = false
 	}
 	ga.bbs = ginkgomon.Invoke(ComponentMakerV1.BBS(skipLocket))
 
