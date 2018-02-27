@@ -14,6 +14,7 @@ import (
 	"code.cloudfoundry.org/inigo/world"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/localip"
+	repconfig "code.cloudfoundry.org/rep/cmd/rep/config"
 	routeemitterconfig "code.cloudfoundry.org/route-emitter/cmd/route-emitter/config"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -181,7 +182,10 @@ var _ = Describe("UpgradeVizzini", func() {
 					})
 					sshProxyRunner = ComponentMakerV1.SSHProxy()
 
-					repRunner = ComponentMakerV1.Rep()
+					exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
+						cfg.ExportNetworkEnvVars = true
+					}
+					repRunner = ComponentMakerV1.Rep(exportNetworkConfigs)
 				})
 
 				It("runs vizzini successfully", func() {
@@ -205,7 +209,10 @@ var _ = Describe("UpgradeVizzini", func() {
 					})
 					sshProxyRunner = ComponentMakerV1.SSHProxy()
 
-					repRunner = ComponentMakerV1.Rep()
+					exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
+						cfg.ExportNetworkEnvVars = true
+					}
+					repRunner = ComponentMakerV1.Rep(exportNetworkConfigs)
 					routeEmitterRunner = ComponentMakerV1.RouteEmitter()
 				})
 
@@ -243,7 +250,9 @@ var _ = Describe("UpgradeVizzini", func() {
 				}
 				routeEmitterRunner = ComponentMakerV0.RouteEmitterN(0, setRouteEmitterCellID)
 				auctioneerRunner = ComponentMakerV0.Auctioneer()
-				repRunner = ComponentMakerV0.Rep()
+				repRunner = ComponentMakerV0.Rep(func(cfg *repconfig.RepConfig) {
+					cfg.ExportNetworkEnvVars = true
+				})
 				sshProxyRunner = ComponentMakerV0.SSHProxy()
 			})
 
@@ -366,7 +375,10 @@ var _ = Describe("UpgradeVizzini", func() {
 					})
 					sshProxyRunner = ComponentMakerV1.SSHProxy()
 
-					repRunner = ComponentMakerV1.Rep()
+					exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
+						cfg.ExportNetworkEnvVars = true
+					}
+					repRunner = ComponentMakerV1.Rep(exportNetworkConfigs)
 					routeEmitterRunner = ComponentMakerV1.RouteEmitterN(0, setRouteEmitterCellID)
 				})
 
