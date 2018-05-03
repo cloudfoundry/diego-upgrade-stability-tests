@@ -10,6 +10,7 @@ import (
 
 	auctioneerconfig "code.cloudfoundry.org/auctioneer/cmd/auctioneer/config"
 	bbsconfig "code.cloudfoundry.org/bbs/cmd/bbs/config"
+	"code.cloudfoundry.org/guardian/gqt/runner"
 	"code.cloudfoundry.org/inigo/helpers"
 	"code.cloudfoundry.org/inigo/world"
 	"code.cloudfoundry.org/lager"
@@ -63,7 +64,10 @@ var _ = Describe("UpgradeVizzini", func() {
 					{Name: "sql", Runner: ComponentMakerV1.SQL()},
 					{Name: "consul", Runner: ComponentMakerV1.Consul()},
 					{Name: "file-server", Runner: fileServer},
-					{Name: "garden", Runner: ComponentMakerV1.Garden()},
+					{Name: "garden", Runner: ComponentMakerV1.Garden(func(cfg *runner.GdnRunnerConfig) {
+						poolSize := 100
+						cfg.PortPoolSize = &poolSize
+					})},
 					{Name: "router", Runner: ComponentMakerV1.Router()},
 				}))
 				helpers.ConsulWaitUntilReady(ComponentMakerV0.Addresses())
@@ -238,7 +242,10 @@ var _ = Describe("UpgradeVizzini", func() {
 					{Name: "sql", Runner: ComponentMakerV1.SQL()},
 					{Name: "consul", Runner: ComponentMakerV1.Consul()},
 					{Name: "file-server", Runner: fileServer},
-					{Name: "garden", Runner: ComponentMakerV1.Garden()},
+					{Name: "garden", Runner: ComponentMakerV1.Garden(func(cfg *runner.GdnRunnerConfig) {
+						poolSize := 100
+						cfg.PortPoolSize = &poolSize
+					})},
 					{Name: "router", Runner: ComponentMakerV1.Router()},
 				}))
 				helpers.ConsulWaitUntilReady(ComponentMakerV0.Addresses())

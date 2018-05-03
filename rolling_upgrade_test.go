@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"code.cloudfoundry.org/bbs/models"
+	"code.cloudfoundry.org/guardian/gqt/runner"
 	"code.cloudfoundry.org/inigo/fixtures"
 	"code.cloudfoundry.org/inigo/helpers"
 	"code.cloudfoundry.org/inigo/world"
@@ -34,7 +35,10 @@ var _ = Describe("RollingUpgrade", func() {
 			{Name: "sql", Runner: ComponentMakerV1.SQL()},
 			{Name: "consul", Runner: ComponentMakerV1.Consul()},
 			{Name: "file-server", Runner: fileServer},
-			{Name: "garden", Runner: ComponentMakerV1.Garden()},
+			{Name: "garden", Runner: ComponentMakerV1.Garden(func(cfg *runner.GdnRunnerConfig) {
+				poolSize := 100
+				cfg.PortPoolSize = &poolSize
+			})},
 			{Name: "router", Runner: ComponentMakerV1.Router()},
 		}))
 	}
