@@ -1,7 +1,6 @@
 package dusts_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -49,42 +48,26 @@ func TestDusts(t *testing.T) {
 	RunSpecs(t, "Dusts Suite")
 }
 
-var _ = SynchronizedBeforeSuite(func() []byte {
+var _ = BeforeSuite(func() {
 	if version := os.Getenv("DIEGO_VERSION_V0"); version != diegoGAVersion && version != diegoLocketLocalREVersion {
 		Fail("DIEGO_VERSION_V0 not set")
 	}
 
-	artifacts := make(map[string]world.BuiltArtifacts)
-	oldArtifacts := world.BuiltArtifacts{
+	oldArtifacts = world.BuiltArtifacts{
 		Lifecycles: world.BuiltLifecycles{},
 	}
 
 	oldArtifacts.Lifecycles.BuildLifecycles("dockerapplifecycle")
 	oldArtifacts.Lifecycles.BuildLifecycles("buildpackapplifecycle")
 	oldArtifacts.Executables = compileTestedExecutablesV0()
-	artifacts["old"] = oldArtifacts
 
-	newArtifacts := world.BuiltArtifacts{
+	newArtifacts = world.BuiltArtifacts{
 		Lifecycles: world.BuiltLifecycles{},
 	}
 
 	newArtifacts.Lifecycles.BuildLifecycles("dockerapplifecycle")
 	newArtifacts.Lifecycles.BuildLifecycles("buildpackapplifecycle")
 	newArtifacts.Executables = compileTestedExecutablesV1()
-	artifacts["new"] = newArtifacts
-
-	payload, err := json.Marshal(artifacts)
-	Expect(err).NotTo(HaveOccurred())
-
-	return payload
-}, func(payload []byte) {
-	var artifacts map[string]world.BuiltArtifacts
-
-	err := json.Unmarshal(payload, &artifacts)
-	Expect(err).NotTo(HaveOccurred())
-
-	newArtifacts = artifacts["new"]
-	oldArtifacts = artifacts["old"]
 
 	_, dbBaseConnectionString := world.DBInfo()
 
@@ -112,12 +95,13 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	portRange := 5000
 	endPort := startPort + portRange
 
-	allocator, err = portauthority.New(startPort, endPort)
+	allocator, err := portauthority.New(startPort, endPort)
 	Expect(err).NotTo(HaveOccurred())
 
-	ComponentMakerV1 = world.MakeComponentMaker("fixtures/certs/", artifacts["new"], addresses, allocator)
 	componentLogs, err = os.Create(fmt.Sprintf("dusts-component-logs.0.0.0.%d.log", time.Now().Unix()))
 	Expect(err).NotTo(HaveOccurred())
+
+	ComponentMakerV1 = world.MakeComponentMaker("fixtures/certs/", newArtifacts, addresses, allocator)
 
 	oldGinkgoWriter := GinkgoWriter
 	GinkgoWriter = componentLogs
