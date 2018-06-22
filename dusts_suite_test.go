@@ -98,8 +98,13 @@ var _ = BeforeSuite(func() {
 	allocator, err := portauthority.New(startPort, endPort)
 	Expect(err).NotTo(HaveOccurred())
 
-	componentLogs, err = os.Create(fmt.Sprintf("dusts-component-logs.0.0.0.%d.log", time.Now().Unix()))
+	componentLogPath := os.Getenv("DUSTS_COMPONENT_LOG_PATH")
+	if componentLogPath == "" {
+		componentLogPath = fmt.Sprintf("dusts-component-logs.0.0.0.%d.log", time.Now().Unix())
+	}
+	componentLogs, err = os.Create(componentLogPath)
 	Expect(err).NotTo(HaveOccurred())
+	fmt.Printf("Writing component logs to %s\n", componentLogPath)
 
 	ComponentMakerV1 = world.MakeComponentMaker("fixtures/certs/", newArtifacts, addresses, allocator)
 
