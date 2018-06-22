@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 
 	"code.cloudfoundry.org/bbs"
 	"code.cloudfoundry.org/bbs/serviceclient"
@@ -29,6 +30,8 @@ const (
 
 var (
 	ComponentMakerV0, ComponentMakerV1 world.ComponentMaker
+
+	componentLogs *os.File
 
 	oldArtifacts, newArtifacts world.BuiltArtifacts
 	addresses                  world.ComponentAddresses
@@ -113,14 +116,46 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Expect(err).NotTo(HaveOccurred())
 
 	ComponentMakerV1 = world.MakeComponentMaker("fixtures/certs/", artifacts["new"], addresses, allocator)
+	componentLogs, err = os.Create(fmt.Sprintf("dusts-component-logs.0.0.0.%d.log", time.Now().Unix()))
+	Expect(err).NotTo(HaveOccurred())
+
+	oldGinkgoWriter := GinkgoWriter
+	GinkgoWriter = componentLogs
+	defer func() {
+		GinkgoWriter = oldGinkgoWriter
+	}()
 	ComponentMakerV1.GrootFSInitStore()
 })
 
 var _ = AfterSuite(func() {
+	componentLogs.Close()
+
 	if ComponentMakerV1 != nil {
 		ComponentMakerV1.GrootFSDeleteStore()
 	}
 })
+
+func QuietBeforeEach(f func()) {
+	BeforeEach(func() {
+		oldGinkgoWriter := GinkgoWriter
+		GinkgoWriter = componentLogs
+		defer func() {
+			GinkgoWriter = oldGinkgoWriter
+		}()
+		f()
+	})
+}
+
+func QuietJustBeforeEach(f func()) {
+	JustBeforeEach(func() {
+		oldGinkgoWriter := GinkgoWriter
+		GinkgoWriter = componentLogs
+		defer func() {
+			GinkgoWriter = oldGinkgoWriter
+		}()
+		f()
+	})
+}
 
 func lazyBuild(binariesPath, gopath, packagePath string, args ...string) string {
 	Expect(os.MkdirAll(binariesPath, 0777)).To(Succeed())

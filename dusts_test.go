@@ -49,7 +49,7 @@ var _ = Describe("UpgradeVizzini", func() {
 
 	if os.Getenv("DIEGO_VERSION_V0") == diegoGAVersion {
 		Context(fmt.Sprintf("from %s", diegoGAVersion), func() {
-			BeforeEach(func() {
+			QuietBeforeEach(func() {
 				logger = lager.NewLogger("test")
 				logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
 
@@ -79,7 +79,7 @@ var _ = Describe("UpgradeVizzini", func() {
 				sshProxyRunner = ComponentMakerV0.SSHProxy()
 			})
 
-			JustBeforeEach(func() {
+			QuietJustBeforeEach(func() {
 				bbs = ginkgomon.Invoke(bbsRunner)
 				routeEmitter = ginkgomon.Invoke(routeEmitterRunner)
 				auctioneer = ginkgomon.Invoke(auctioneerRunner)
@@ -227,7 +227,7 @@ var _ = Describe("UpgradeVizzini", func() {
 		})
 	} else if os.Getenv("DIEGO_VERSION_V0") == diegoLocketLocalREVersion {
 		Context(fmt.Sprintf("from %s", diegoLocketLocalREVersion), func() {
-			BeforeEach(func() {
+			QuietBeforeEach(func() {
 				logger = lager.NewLogger("test")
 				logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
 
@@ -263,7 +263,7 @@ var _ = Describe("UpgradeVizzini", func() {
 				sshProxyRunner = ComponentMakerV0.SSHProxy()
 			})
 
-			JustBeforeEach(func() {
+			QuietJustBeforeEach(func() {
 				locket = ginkgomon.Invoke(locketRunner)
 				bbs = ginkgomon.Invoke(bbsRunner)
 				routeEmitter = ginkgomon.Invoke(routeEmitterRunner)
