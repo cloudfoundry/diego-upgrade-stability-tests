@@ -1,6 +1,7 @@
 package dusts_test
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 
@@ -50,6 +51,8 @@ var _ = Describe("RollingUpgrade", func() {
 		)
 
 		BeforeEach(func() {
+			GinkgoWriter = io.MultiWriter(GinkgoWriter, componentLogs)
+
 			diegoV0Version := os.Getenv("DIEGO_VERSION_V0")
 
 			switch diegoV0Version {
