@@ -117,11 +117,16 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	componentLogs.Close()
-
+	oldGinkgoWriter := GinkgoWriter
+	GinkgoWriter = componentLogs
+	defer func() {
+		GinkgoWriter = oldGinkgoWriter
+	}()
 	if ComponentMakerV1 != nil {
 		ComponentMakerV1.GrootFSDeleteStore()
 	}
+
+	componentLogs.Close()
 })
 
 func QuietBeforeEach(f func()) {
