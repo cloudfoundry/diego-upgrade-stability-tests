@@ -34,6 +34,24 @@ var (
 )
 
 var _ = Describe("UpgradeVizzini", func() {
+	disableAuctioneerSSL := func(cfg *auctioneerconfig.AuctioneerConfig) {
+		cfg.CACertFile = ""
+		cfg.ServerCertFile = ""
+		cfg.ServerKeyFile = ""
+	}
+	skipLocketForBBS := func(cfg *bbsconfig.BBSConfig) {
+		cfg.LocksLocketEnabled = false
+		cfg.CellRegistrationsLocketEnabled = false
+	}
+	fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
+		cfg.AuctioneerRequireTLS = false
+	}
+	disableLocketForAuctioneer := func(cfg *auctioneerconfig.AuctioneerConfig) {
+		cfg.LocksLocketEnabled = false
+	}
+	exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
+		cfg.ExportNetworkEnvVars = true
+	}
 	var (
 		plumbing                                             ifrit.Process
 		locket, bbs, routeEmitter, sshProxy, auctioneer, rep ifrit.Process
@@ -55,7 +73,8 @@ var _ = Describe("UpgradeVizzini", func() {
 
 				bbsClientGoPathEnvVar = "GOPATH_V0"
 
-				ComponentMakerV0 = world.MakeV0ComponentMaker("fixtures/certs/", oldArtifacts, addresses, allocator)
+				ComponentMakerV0 = world.MakeV0ComponentMaker(oldArtifacts, addresses, allocator, certAuthority)
+				ComponentMakerV0.Setup()
 
 				fileServer, _ := ComponentMakerV1.FileServer()
 
@@ -108,24 +127,19 @@ var _ = Describe("UpgradeVizzini", func() {
 
 			Context("v0 configuration", func() {
 				It("runs vizzini successfully", func() {
-					runVizziniTests(bbsClientGoPathEnvVar, securityGroupV0Tests)
+					runVizziniTests(ComponentMakerV0.BBSSSLConfig(), bbsClientGoPathEnvVar, securityGroupV0Tests)
 				})
 			})
 
 			Context("upgrading the BBS API", func() {
 				BeforeEach(func() {
-					skipLocket := func(cfg *bbsconfig.BBSConfig) {
-						cfg.LocksLocketEnabled = false
-						cfg.CellRegistrationsLocketEnabled = false
-					}
-					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
-						cfg.AuctioneerRequireTLS = false
-					}
-					bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
+					bbsRunner = ComponentMakerV1.BBS(skipLocketForBBS, fallbackToHTTPAuctioneer)
+					auctioneerRunner = ComponentMakerV0.Auctioneer(disableAuctioneerSSL)
+					sshProxyRunner = ComponentMakerV1.SSHProxy()
 				})
 
 				It("runs vizzini successfully", func() {
-					runVizziniTests(bbsClientGoPathEnvVar, securityGroupV0Tests)
+					runVizziniTests(ComponentMakerV1.BBSSSLConfig(), bbsClientGoPathEnvVar, securityGroupV0Tests)
 				})
 			})
 
@@ -133,95 +147,55 @@ var _ = Describe("UpgradeVizzini", func() {
 				BeforeEach(func() {
 					bbsClientGoPathEnvVar = "GOPATH"
 
-					skipLocket := func(cfg *bbsconfig.BBSConfig) {
-						cfg.LocksLocketEnabled = false
-						cfg.CellRegistrationsLocketEnabled = false
-					}
-					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
-						cfg.AuctioneerRequireTLS = false
-					}
-					bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
+					bbsRunner = ComponentMakerV1.BBS(skipLocketForBBS, fallbackToHTTPAuctioneer)
+					auctioneerRunner = ComponentMakerV0.Auctioneer(disableAuctioneerSSL)
+					sshProxyRunner = ComponentMakerV1.SSHProxy()
 				})
 
 				It("runs vizzini successfully", func() {
-					runVizziniTests(bbsClientGoPathEnvVar, repV0UnsupportedVizziniTests...)
+					runVizziniTests(ComponentMakerV1.BBSSSLConfig(), bbsClientGoPathEnvVar, repV0UnsupportedVizziniTests...)
 				})
 			})
 
 			Context("upgrading the BBS API, BBS client, sshProxy, and Auctioneer", func() {
 				BeforeEach(func() {
 					bbsClientGoPathEnvVar = "GOPATH"
-					skipLocket := func(cfg *bbsconfig.BBSConfig) {
-						cfg.LocksLocketEnabled = false
-						cfg.CellRegistrationsLocketEnabled = false
-					}
-					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
-						cfg.AuctioneerRequireTLS = false
-					}
-					bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
-					auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
-						cfg.LocksLocketEnabled = false
-					})
+					bbsRunner = ComponentMakerV1.BBS(skipLocketForBBS, fallbackToHTTPAuctioneer)
+					auctioneerRunner = ComponentMakerV1.Auctioneer(disableLocketForAuctioneer, disableAuctioneerSSL)
 					sshProxyRunner = ComponentMakerV1.SSHProxy()
 				})
 
 				It("runs vizzini successfully", func() {
-					runVizziniTests(bbsClientGoPathEnvVar, repV0UnsupportedVizziniTests...)
+					runVizziniTests(ComponentMakerV1.BBSSSLConfig(), bbsClientGoPathEnvVar, repV0UnsupportedVizziniTests...)
 				})
 			})
 
 			Context("upgrading the BBS API, BBS client, sshProxy, Auctioneer, and Rep", func() {
 				BeforeEach(func() {
 					bbsClientGoPathEnvVar = "GOPATH"
-					skipLocket := func(cfg *bbsconfig.BBSConfig) {
-						cfg.LocksLocketEnabled = false
-						cfg.CellRegistrationsLocketEnabled = false
-					}
-					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
-						cfg.AuctioneerRequireTLS = false
-					}
-					bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
-					auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
-						cfg.LocksLocketEnabled = false
-					})
+					bbsRunner = ComponentMakerV1.BBS(skipLocketForBBS, fallbackToHTTPAuctioneer)
+					auctioneerRunner = ComponentMakerV1.Auctioneer(disableLocketForAuctioneer, disableAuctioneerSSL)
 					sshProxyRunner = ComponentMakerV1.SSHProxy()
-
-					exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
-						cfg.ExportNetworkEnvVars = true
-					}
 					repRunner = ComponentMakerV1.Rep(exportNetworkConfigs)
 				})
 
 				It("runs vizzini successfully", func() {
-					runVizziniTests(bbsClientGoPathEnvVar)
+					runVizziniTests(ComponentMakerV1.BBSSSLConfig(), bbsClientGoPathEnvVar)
 				})
 			})
 
 			Context("upgrading the BBS API, BBS client, sshProxy, Auctioneer, Rep, and Route Emitter", func() {
 				BeforeEach(func() {
 					bbsClientGoPathEnvVar = "GOPATH"
-					skipLocket := func(cfg *bbsconfig.BBSConfig) {
-						cfg.LocksLocketEnabled = false
-						cfg.CellRegistrationsLocketEnabled = false
-					}
-					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
-						cfg.AuctioneerRequireTLS = false
-					}
-					bbsRunner = ComponentMakerV1.BBS(skipLocket, fallbackToHTTPAuctioneer)
-					auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
-						cfg.LocksLocketEnabled = false
-					})
+					bbsRunner = ComponentMakerV1.BBS(skipLocketForBBS, fallbackToHTTPAuctioneer)
+					auctioneerRunner = ComponentMakerV1.Auctioneer(disableLocketForAuctioneer)
 					sshProxyRunner = ComponentMakerV1.SSHProxy()
-
-					exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
-						cfg.ExportNetworkEnvVars = true
-					}
 					repRunner = ComponentMakerV1.Rep(exportNetworkConfigs)
 					routeEmitterRunner = ComponentMakerV1.RouteEmitter()
 				})
 
 				It("runs vizzini successfully", func() {
-					runVizziniTests(bbsClientGoPathEnvVar)
+					runVizziniTests(ComponentMakerV1.BBSSSLConfig(), bbsClientGoPathEnvVar)
 				})
 			})
 		})
@@ -233,7 +207,8 @@ var _ = Describe("UpgradeVizzini", func() {
 
 				bbsClientGoPathEnvVar = "GOPATH_V0"
 
-				ComponentMakerV0 = world.MakeComponentMaker("fixtures/certs/", oldArtifacts, addresses, allocator)
+				ComponentMakerV0 = world.MakeComponentMaker(oldArtifacts, addresses, allocator, certAuthority)
+				ComponentMakerV0.Setup()
 
 				fileServer, _ := ComponentMakerV1.FileServer()
 
@@ -294,7 +269,7 @@ var _ = Describe("UpgradeVizzini", func() {
 
 			Context("v0 configuration", func() {
 				It("runs vizzini successfully", func() {
-					runVizziniTests(bbsClientGoPathEnvVar, securityGroupV0Tests)
+					runVizziniTests(ComponentMakerV0.BBSSSLConfig(), bbsClientGoPathEnvVar, securityGroupV0Tests)
 				})
 			})
 
@@ -304,68 +279,57 @@ var _ = Describe("UpgradeVizzini", func() {
 				})
 
 				It("runs vizzini successfully", func() {
-					runVizziniTests(bbsClientGoPathEnvVar, securityGroupV0Tests)
+					runVizziniTests(ComponentMakerV0.BBSSSLConfig(), bbsClientGoPathEnvVar, securityGroupV0Tests)
 				})
 			})
 
 			Context("upgrading the BBS API", func() {
 				BeforeEach(func() {
-					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
-						cfg.AuctioneerRequireTLS = false
-					}
 					bbsRunner = ComponentMakerV1.BBS(fallbackToHTTPAuctioneer)
+					auctioneerRunner = ComponentMakerV0.Auctioneer(disableAuctioneerSSL)
 				})
 
 				It("runs vizzini successfully", func() {
-					runVizziniTests(bbsClientGoPathEnvVar, securityGroupV0Tests)
+					runVizziniTests(ComponentMakerV1.BBSSSLConfig(), bbsClientGoPathEnvVar, securityGroupV0Tests)
 				})
 			})
 
 			Context("upgrading the Locket and BBS API", func() {
 				BeforeEach(func() {
-					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
-						cfg.AuctioneerRequireTLS = false
-					}
 					locketRunner = ComponentMakerV1.Locket()
 					bbsRunner = ComponentMakerV1.BBS(fallbackToHTTPAuctioneer)
+					auctioneerRunner = ComponentMakerV0.Auctioneer(disableAuctioneerSSL)
 				})
 
 				It("runs vizzini successfully", func() {
-					runVizziniTests(bbsClientGoPathEnvVar, securityGroupV0Tests)
+					runVizziniTests(ComponentMakerV1.BBSSSLConfig(), bbsClientGoPathEnvVar, securityGroupV0Tests)
 				})
 			})
 
 			Context("upgrading the Locket, BBS API and BBS client", func() {
 				BeforeEach(func() {
 					bbsClientGoPathEnvVar = "GOPATH"
-					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
-						cfg.AuctioneerRequireTLS = false
-					}
 					locketRunner = ComponentMakerV1.Locket()
 					bbsRunner = ComponentMakerV1.BBS(fallbackToHTTPAuctioneer)
+					auctioneerRunner = ComponentMakerV0.Auctioneer(disableAuctioneerSSL)
 				})
 
 				It("runs vizzini successfully", func() {
-					runVizziniTests(bbsClientGoPathEnvVar, repV0UnsupportedVizziniTests...)
+					runVizziniTests(ComponentMakerV1.BBSSSLConfig(), bbsClientGoPathEnvVar, repV0UnsupportedVizziniTests...)
 				})
 			})
 
 			Context("upgrading the Locket, BBS API, BBS client, sshProxy, and Auctioneer", func() {
 				BeforeEach(func() {
 					bbsClientGoPathEnvVar = "GOPATH"
-					fallbackToHTTPAuctioneer := func(cfg *bbsconfig.BBSConfig) {
-						cfg.AuctioneerRequireTLS = false
-					}
 					locketRunner = ComponentMakerV1.Locket()
-					bbsRunner = ComponentMakerV1.BBS(fallbackToHTTPAuctioneer)
-					auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
-						cfg.LocksLocketEnabled = false
-					})
 					sshProxyRunner = ComponentMakerV1.SSHProxy()
+					bbsRunner = ComponentMakerV1.BBS(fallbackToHTTPAuctioneer)
+					auctioneerRunner = ComponentMakerV1.Auctioneer(disableLocketForAuctioneer)
 				})
 
 				It("runs vizzini successfully", func() {
-					runVizziniTests(bbsClientGoPathEnvVar, repV0UnsupportedVizziniTests...)
+					runVizziniTests(ComponentMakerV1.BBSSSLConfig(), bbsClientGoPathEnvVar, repV0UnsupportedVizziniTests...)
 				})
 			})
 
@@ -377,27 +341,21 @@ var _ = Describe("UpgradeVizzini", func() {
 					}
 					locketRunner = ComponentMakerV1.Locket()
 					bbsRunner = ComponentMakerV1.BBS(fallbackToHTTPAuctioneer)
-					auctioneerRunner = ComponentMakerV1.Auctioneer(func(cfg *auctioneerconfig.AuctioneerConfig) {
-						cfg.LocksLocketEnabled = false
-					})
+					auctioneerRunner = ComponentMakerV1.Auctioneer(disableLocketForAuctioneer)
 					sshProxyRunner = ComponentMakerV1.SSHProxy()
-
-					exportNetworkConfigs := func(cfg *repconfig.RepConfig) {
-						cfg.ExportNetworkEnvVars = true
-					}
 					repRunner = ComponentMakerV1.Rep(exportNetworkConfigs)
 					routeEmitterRunner = ComponentMakerV1.RouteEmitterN(0, setRouteEmitterCellID)
 				})
 
 				It("runs vizzini successfully", func() {
-					runVizziniTests(bbsClientGoPathEnvVar)
+					runVizziniTests(ComponentMakerV1.BBSSSLConfig(), bbsClientGoPathEnvVar)
 				})
 			})
 		})
 	}
 })
 
-func runVizziniTests(gopathEnvVar string, skips ...string) {
+func runVizziniTests(sslConfig world.SSLConfig, gopathEnvVar string, skips ...string) {
 	ip, err := localip.LocalIP()
 	Expect(err).NotTo(HaveOccurred())
 	vizziniPath := filepath.Join(os.Getenv(gopathEnvVar), "src/code.cloudfoundry.org/vizzini")
@@ -410,8 +368,8 @@ func runVizziniTests(gopathEnvVar string, skips ...string) {
 		"-failFast",
 		"--",
 		"-bbs-address", "https://" + ComponentMakerV1.Addresses().BBS,
-		"-bbs-client-cert", ComponentMakerV1.BBSSSLConfig().ClientCert,
-		"-bbs-client-key", ComponentMakerV1.BBSSSLConfig().ClientKey,
+		"-bbs-client-cert", sslConfig.ClientCert,
+		"-bbs-client-key", sslConfig.ClientKey,
 		"-ssh-address", ComponentMakerV1.Addresses().SSHProxy,
 		"-ssh-password", "",
 		"-routable-domain-suffix", "test.internal", // Served by dnsmasq using setup_inigo script

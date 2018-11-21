@@ -2,6 +2,7 @@ package dusts_test
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 	"code.cloudfoundry.org/bbs/serviceclient"
 	"code.cloudfoundry.org/consuladapter/consulrunner"
 	"code.cloudfoundry.org/inigo/helpers"
+	"code.cloudfoundry.org/inigo/helpers/certauthority"
 	"code.cloudfoundry.org/inigo/helpers/portauthority"
 	"code.cloudfoundry.org/inigo/world"
 	"code.cloudfoundry.org/lager"
@@ -40,6 +42,9 @@ var (
 	bbsServiceClient serviceclient.ServiceClient
 	logger           lager.Logger
 	allocator        portauthority.PortAllocator
+	certAuthority    certauthority.CertAuthority
+
+	depotDir string
 )
 
 func TestDusts(t *testing.T) {
@@ -98,6 +103,12 @@ var _ = BeforeSuite(func() {
 	allocator, err := portauthority.New(startPort, endPort)
 	Expect(err).NotTo(HaveOccurred())
 
+	depotDir, err = ioutil.TempDir("", "depotDir")
+	Expect(err).NotTo(HaveOccurred())
+
+	certAuthority, err = certauthority.NewCertAuthority(depotDir, "ca")
+	Expect(err).NotTo(HaveOccurred())
+
 	componentLogPath := os.Getenv("DUSTS_COMPONENT_LOG_PATH")
 	if componentLogPath == "" {
 		componentLogPath = fmt.Sprintf("dusts-component-logs.0.0.0.%d.log", time.Now().Unix())
@@ -106,7 +117,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	fmt.Printf("Writing component logs to %s\n", componentLogPath)
 
-	ComponentMakerV1 = world.MakeComponentMaker("fixtures/certs/", newArtifacts, addresses, allocator)
+	ComponentMakerV1 = world.MakeComponentMaker(newArtifacts, addresses, allocator, certAuthority)
+	ComponentMakerV1.Setup()
 
 	oldGinkgoWriter := GinkgoWriter
 	GinkgoWriter = componentLogs
@@ -126,6 +138,7 @@ var _ = AfterSuite(func() {
 		ComponentMakerV1.GrootFSDeleteStore()
 	}
 
+	Expect(os.RemoveAll(depotDir)).To(Succeed())
 	componentLogs.Close()
 })
 
