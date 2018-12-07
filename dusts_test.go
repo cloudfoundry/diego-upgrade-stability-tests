@@ -366,6 +366,7 @@ func runVizziniTests(sslConfig world.SSLConfig, gopathEnvVar string, skips ...st
 		"-slowSpecThreshold", "60",
 		"-skip", strings.Join(skips, "|"),
 		"-failFast",
+		"-flakeAttempts=2",
 		"--",
 		"-bbs-address", "https://" + ComponentMakerV1.Addresses().BBS,
 		"-bbs-client-cert", sslConfig.ClientCert,
