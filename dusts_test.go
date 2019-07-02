@@ -359,6 +359,7 @@ func runVizziniTests(sslConfig world.SSLConfig, gopathEnvVar string, skips ...st
 	ip, err := localip.LocalIP()
 	Expect(err).NotTo(HaveOccurred())
 	vizziniPath := filepath.Join(os.Getenv(gopathEnvVar), "src/code.cloudfoundry.org/vizzini")
+	defaultRootFS := os.Getenv("DEFAULT_ROOTFS")
 	flags := []string{
 		"-nodes", "4",
 		"-randomizeAllSpecs",
@@ -373,6 +374,7 @@ func runVizziniTests(sslConfig world.SSLConfig, gopathEnvVar string, skips ...st
 		"-ssh-password", "",
 		"-routable-domain-suffix", "test.internal", // Served by dnsmasq using setup_inigo script
 		"-host-address", ip,
+		"-default-rootfs", defaultRootFS,
 	}
 
 	env := os.Environ()
