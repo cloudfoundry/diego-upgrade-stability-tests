@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	repV0UnsupportedVizziniTests = []string{"MaxPids", "CF_INSTANCE_INTERNAL_IP"}
+	repV0UnsupportedVizziniTests = []string{"MaxPids", "CF_INSTANCE_INTERNAL_IP", "sidecar"}
 	// security_group_tests in V0 vizzini won't pass since they try to access the
 	// router (as opposed to www.example.com in recent versions). Security groups
 	// don't affect access to the host machine, therefore they cannot block
