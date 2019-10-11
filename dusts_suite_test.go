@@ -45,6 +45,8 @@ var (
 	certAuthority    certauthority.CertAuthority
 
 	depotDir string
+
+	graceTarballChecksum string
 )
 
 func TestDusts(t *testing.T) {
@@ -56,6 +58,10 @@ func TestDusts(t *testing.T) {
 var _ = BeforeSuite(func() {
 	if version := os.Getenv("DIEGO_VERSION_V0"); version != diegoGAVersion && version != diegoLocketLocalREVersion {
 		Fail("DIEGO_VERSION_V0 not set")
+	}
+
+	if graceTarballChecksum = os.Getenv("GRACE_TARBALL_CHECKSUM"); graceTarballChecksum == "" {
+		Fail("GRACE_TARBALL_CHECKSUM not set")
 	}
 
 	oldArtifacts = world.BuiltArtifacts{
