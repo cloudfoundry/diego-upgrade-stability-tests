@@ -1,7 +1,9 @@
 package dusts_test
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,6 +19,7 @@ import (
 	"code.cloudfoundry.org/localip"
 	repconfig "code.cloudfoundry.org/rep/cmd/rep/config"
 	routeemitterconfig "code.cloudfoundry.org/route-emitter/cmd/route-emitter/config"
+	vizziniconfig "code.cloudfoundry.org/vizzini/config"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
@@ -31,6 +34,8 @@ var (
 	// don't affect access to the host machine, therefore they cannot block
 	// traffic which causes both tests in that file to fail
 	securityGroupV0Tests = "should allow access to an internal IP"
+
+	vizziniConfigFile *os.File
 )
 
 var _ = Describe("UpgradeVizzini", func() {
@@ -64,6 +69,17 @@ var _ = Describe("UpgradeVizzini", func() {
 		bbsClientGoPathEnvVar                                string
 		setRouteEmitterCellID                                func(config *routeemitterconfig.RouteEmitterConfig)
 	)
+
+	BeforeEach(func() {
+		var err error
+		vizziniConfigFile, err = ioutil.TempFile(os.TempDir(), "vizzini_config-")
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		err := os.Remove(vizziniConfigFile.Name())
+		Expect(err).ToNot(HaveOccurred())
+	})
 
 	if os.Getenv("DIEGO_VERSION_V0") == diegoGAVersion {
 		Context(fmt.Sprintf("from %s", diegoGAVersion), func() {
@@ -358,6 +374,7 @@ var _ = Describe("UpgradeVizzini", func() {
 func runVizziniTests(sslConfig world.SSLConfig, gopathEnvVar string, skips ...string) {
 	ip, err := localip.LocalIP()
 	Expect(err).NotTo(HaveOccurred())
+
 	vizziniPath := filepath.Join(os.Getenv(gopathEnvVar), "src/code.cloudfoundry.org/vizzini")
 	defaultRootFS := os.Getenv("DEFAULT_ROOTFS")
 	flags := []string{
@@ -366,19 +383,39 @@ func runVizziniTests(sslConfig world.SSLConfig, gopathEnvVar string, skips ...st
 		"-r",
 		"-slowSpecThreshold", "60",
 		"-skip", strings.Join(skips, "|"),
-		"--",
-		"-bbs-address", "https://" + ComponentMakerV1.Addresses().BBS,
-		"-bbs-client-cert", sslConfig.ClientCert,
-		"-bbs-client-key", sslConfig.ClientKey,
-		"-ssh-address", ComponentMakerV1.Addresses().SSHProxy,
-		"-ssh-password", "",
-		"-routable-domain-suffix", "test.internal", // Served by dnsmasq using setup_inigo script
-		"-host-address", ip,
-		"-default-rootfs", defaultRootFS,
 	}
 
-	env := os.Environ()
-	env = append(env, fmt.Sprintf("GOPATH=%s", os.Getenv(gopathEnvVar)))
+	vizziniConfig := vizziniconfig.VizziniConfig{
+		BBSAddress:                     "https://" + ComponentMakerV1.Addresses().BBS,
+		BBSClientCertPath:              sslConfig.ClientCert,
+		BBSClientKeyPath:               sslConfig.ClientKey,
+		SSHAddress:                     ComponentMakerV1.Addresses().SSHProxy,
+		SSHPassword:                    "",
+		RoutableDomainSuffix:           "test.internal", // Served by dnsmasq using setup_inigo script
+		HostAddress:                    ip,
+		EnableDeclarativeHealthcheck:   false,
+		EnableContainerProxyTests:      false,
+		EnablePrivilegedContainerTests: true,
+		RepPlacementTags:               []string{},
+		MaxTaskRetries:                 0,
+		DefaultRootFS:                  defaultRootFS,
+	}
+
+	bytes, err := json.Marshal(&vizziniConfig)
+	Expect(err).ToNot(HaveOccurred())
+
+	_, err = vizziniConfigFile.Write(bytes)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = vizziniConfigFile.Close()
+	Expect(err).ToNot(HaveOccurred())
+
+	env := append(
+		os.Environ(),
+		fmt.Sprintf("GOPATH=%s", os.Getenv(gopathEnvVar)),
+		fmt.Sprintf("VIZZINI_CONFIG_PATH=%s", vizziniConfigFile.Name()),
+	)
+
 	cmd := exec.Command("ginkgo", flags...)
 	cmd.Env = env
 	cmd.Dir = vizziniPath
