@@ -402,6 +402,7 @@ func runVizziniTests(sslConfig world.SSLConfig, gopathEnvVar string, skips ...st
 		GraceTarballURL:                "https://storage.googleapis.com/diego-assets-bucket/grace.tar.gz",
 		GraceTarballChecksum:           graceTarballChecksum,
 		GraceBusyboxImageURL:           "docker:///cfdiegodocker/grace",
+		FileServerAddress:              "http://" + ComponentMakerV1.Addresses().FileServer,
 	}
 
 	bytes, err := json.Marshal(&vizziniConfig)
