@@ -2,7 +2,6 @@ package dusts_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -44,9 +43,9 @@ var (
 	allocator        portauthority.PortAllocator
 	certAuthority    certauthority.CertAuthority
 
-	depotDir string
-
 	graceTarballChecksum string
+
+	suiteTempDir string
 )
 
 func TestDusts(t *testing.T) {
@@ -56,6 +55,8 @@ func TestDusts(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	suiteTempDir = world.TempDir("before-suite")
+
 	if version := os.Getenv("DIEGO_VERSION_V0"); version != diegoGAVersion && version != diegoLocketLocalREVersion {
 		Fail("DIEGO_VERSION_V0 not set")
 	}
@@ -68,16 +69,16 @@ var _ = BeforeSuite(func() {
 		Lifecycles: world.BuiltLifecycles{},
 	}
 
-	oldArtifacts.Lifecycles.BuildLifecycles("dockerapplifecycle")
-	oldArtifacts.Lifecycles.BuildLifecycles("buildpackapplifecycle")
+	oldArtifacts.Lifecycles.BuildLifecycles("dockerapplifecycle", suiteTempDir)
+	oldArtifacts.Lifecycles.BuildLifecycles("buildpackapplifecycle", suiteTempDir)
 	oldArtifacts.Executables = compileTestedExecutablesV0()
 
 	newArtifacts = world.BuiltArtifacts{
 		Lifecycles: world.BuiltLifecycles{},
 	}
 
-	newArtifacts.Lifecycles.BuildLifecycles("dockerapplifecycle")
-	newArtifacts.Lifecycles.BuildLifecycles("buildpackapplifecycle")
+	newArtifacts.Lifecycles.BuildLifecycles("dockerapplifecycle", suiteTempDir)
+	newArtifacts.Lifecycles.BuildLifecycles("buildpackapplifecycle", suiteTempDir)
 	newArtifacts.Executables = compileTestedExecutablesV1()
 
 	_, dbBaseConnectionString := world.DBInfo()
@@ -108,8 +109,7 @@ var _ = BeforeSuite(func() {
 	allocator, err := portauthority.New(startPort, endPort)
 	Expect(err).NotTo(HaveOccurred())
 
-	depotDir, err = ioutil.TempDir("", "depotDir")
-	Expect(err).NotTo(HaveOccurred())
+	depotDir := world.TempDirWithParent(suiteTempDir, "depotDir")
 
 	certAuthority, err = certauthority.NewCertAuthority(depotDir, "ca")
 	Expect(err).NotTo(HaveOccurred())
@@ -143,7 +143,7 @@ var _ = AfterSuite(func() {
 		ComponentMakerV1.GrootFSDeleteStore()
 	}
 
-	Expect(os.RemoveAll(depotDir)).To(Succeed())
+	Expect(os.RemoveAll(suiteTempDir)).To(Succeed())
 	componentLogs.Close()
 })
 
