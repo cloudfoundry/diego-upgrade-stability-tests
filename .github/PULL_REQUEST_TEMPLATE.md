@@ -1,5 +1,4 @@
-Thank you for submitting a pull request to the diego-upgrade-stability-tests
- repository!
+Thank you for submitting a pull request to the diego-upgrade-stability-tests repository!
 
 We appreciate the contribution. To help us understand the context for your pull request, please fill out this template to the best of your ability.
 
