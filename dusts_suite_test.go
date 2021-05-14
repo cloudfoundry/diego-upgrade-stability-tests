@@ -187,7 +187,7 @@ func compileTestedExecutablesV1() world.BuiltExecutables {
 	binariesPath := "/tmp/v1_binaries"
 	builtExecutables := world.BuiltExecutables{}
 
-	builtExecutables["garden"] = lazyBuild(binariesPath, os.Getenv("GARDEN_GOPATH"), "code.cloudfoundry.org/guardian/cmd/gdn", "-race", "-a", "-tags", "daemon")
+	builtExecutables["garden"] = lazyBuild(binariesPath, os.Getenv("GARDEN_GOPATH"), "guardian/cmd/gdn", "-race", "-a", "-tags", "daemon")
 	builtExecutables["auctioneer"] = lazyBuild(binariesPath, os.Getenv("AUCTIONEER_GOPATH"), "code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
 	builtExecutables["rep"] = lazyBuild(binariesPath, os.Getenv("REP_GOPATH"), "code.cloudfoundry.org/rep/cmd/rep", "-race")
 	builtExecutables["bbs"] = lazyBuild(binariesPath, os.Getenv("BBS_GOPATH"), "code.cloudfoundry.org/bbs/cmd/bbs", "-race")
