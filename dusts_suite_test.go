@@ -169,31 +169,14 @@ func QuietJustBeforeEach(f func()) {
 	})
 }
 
-func lazyBuild(binariesPath, gopath, packagePath string, args ...string) string {
+func buildWithGopath(binariesPath, gopath, packagePath string, args ...string) string {
 	Expect(os.MkdirAll(binariesPath, 0777)).To(Succeed())
 	binaryName := filepath.Base(packagePath)
 	expectedBinaryPath := path.Join(binariesPath, binaryName)
 	cwd, err := os.Getwd()
 	Expect(err).To(Succeed())
 	if _, err := os.Stat(expectedBinaryPath); os.IsNotExist(err) {
-		fmt.Printf("Building %s\n", packagePath)
-		Expect(os.Chdir(gopath)).To(Succeed())
-		binaryPath, err := gexec.Build(packagePath, args...)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(os.Rename(binaryPath, path.Join(binariesPath, binaryName))).To(Succeed())
-		Expect(os.Chdir(cwd)).To(Succeed())
-	}
-	return expectedBinaryPath
-}
-
-func lazyBuildIn(binariesPath, gopath, packagePath string, args ...string) string {
-	Expect(os.MkdirAll(binariesPath, 0777)).To(Succeed())
-	binaryName := filepath.Base(packagePath)
-	expectedBinaryPath := path.Join(binariesPath, binaryName)
-	cwd, err := os.Getwd()
-	Expect(err).To(Succeed())
-	if _, err := os.Stat(expectedBinaryPath); os.IsNotExist(err) {
-		fmt.Printf("Building %s\n", packagePath)
+		fmt.Printf("Building %s with Gopath %s \n", packagePath, gopath)
 		Expect(os.Chdir(gopath)).To(Succeed())
 		binaryPath, err := gexec.BuildIn(gopath, packagePath, args...)
 		Expect(err).NotTo(HaveOccurred())
@@ -203,46 +186,61 @@ func lazyBuildIn(binariesPath, gopath, packagePath string, args ...string) strin
 	return expectedBinaryPath
 }
 
+func buildAsModule(binariesPath, modulepath, packagePath string, args ...string) string {
+	Expect(os.MkdirAll(binariesPath, 0777)).To(Succeed())
+	binaryName := filepath.Base(packagePath)
+	expectedBinaryPath := path.Join(binariesPath, binaryName)
+	cwd, err := os.Getwd()
+	Expect(err).To(Succeed())
+	if _, err := os.Stat(expectedBinaryPath); os.IsNotExist(err) {
+		fmt.Printf("Building %s as Module \n", packagePath)
+		Expect(os.Chdir(modulepath)).To(Succeed())
+		binaryPath, err := gexec.Build(packagePath, args...)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(os.Rename(binaryPath, path.Join(binariesPath, binaryName))).To(Succeed())
+		Expect(os.Chdir(cwd)).To(Succeed())
+	}
+	return expectedBinaryPath
+}
+
 func compileTestedExecutablesV1() world.BuiltExecutables {
-	fmt.Println("Lazily building V1 executables")
 	binariesPath := "/tmp/v1_binaries"
 	builtExecutables := world.BuiltExecutables{}
 
-	builtExecutables["garden"] = lazyBuild(binariesPath, os.Getenv("GARDEN_GOPATH"), "./cmd/gdn", "-race", "-a", "-tags", "daemon")
-	builtExecutables["auctioneer"] = lazyBuild(binariesPath, os.Getenv("AUCTIONEER_GOPATH"), "code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
-	builtExecutables["rep"] = lazyBuild(binariesPath, os.Getenv("REP_GOPATH"), "code.cloudfoundry.org/rep/cmd/rep", "-race")
-	builtExecutables["bbs"] = lazyBuild(binariesPath, os.Getenv("BBS_GOPATH"), "code.cloudfoundry.org/bbs/cmd/bbs", "-race")
-	builtExecutables["locket"] = lazyBuild(binariesPath, os.Getenv("LOCKET_GOPATH"), "code.cloudfoundry.org/locket/cmd/locket", "-race")
-	builtExecutables["file-server"] = lazyBuild(binariesPath, os.Getenv("FILE_SERVER_GOPATH"), "code.cloudfoundry.org/fileserver/cmd/file-server", "-race")
-	builtExecutables["route-emitter"] = lazyBuild(binariesPath, os.Getenv("ROUTE_EMITTER_GOPATH"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
-	builtExecutables["router"] = lazyBuildIn(binariesPath, os.Getenv("ROUTER_GOPATH"), "code.cloudfoundry.org/gorouter", "-race")
-	builtExecutables["routing-api"] = lazyBuild(binariesPath, os.Getenv("ROUTING_API_GOPATH"), "code.cloudfoundry.org/routing-api/cmd/routing-api", "-race")
-	builtExecutables["ssh-proxy"] = lazyBuild(binariesPath, os.Getenv("SSH_PROXY_GOPATH"), "code.cloudfoundry.org/diego-ssh/cmd/ssh-proxy", "-race")
+	builtExecutables["garden"] = buildAsModule(binariesPath, os.Getenv("GARDEN_GOPATH"), "./cmd/gdn", "-race", "-a", "-tags", "daemon")
+	builtExecutables["auctioneer"] = buildAsModule(binariesPath, os.Getenv("AUCTIONEER_GOPATH"), "code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
+	builtExecutables["rep"] = buildAsModule(binariesPath, os.Getenv("REP_GOPATH"), "code.cloudfoundry.org/rep/cmd/rep", "-race")
+	builtExecutables["bbs"] = buildAsModule(binariesPath, os.Getenv("BBS_GOPATH"), "code.cloudfoundry.org/bbs/cmd/bbs", "-race")
+	builtExecutables["locket"] = buildAsModule(binariesPath, os.Getenv("LOCKET_GOPATH"), "code.cloudfoundry.org/locket/cmd/locket", "-race")
+	builtExecutables["file-server"] = buildAsModule(binariesPath, os.Getenv("FILE_SERVER_GOPATH"), "code.cloudfoundry.org/fileserver/cmd/file-server", "-race")
+	builtExecutables["route-emitter"] = buildAsModule(binariesPath, os.Getenv("ROUTE_EMITTER_GOPATH"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
+	builtExecutables["router"] = buildWithGopath(binariesPath, os.Getenv("ROUTER_GOPATH"), "code.cloudfoundry.org/gorouter", "-race")
+	builtExecutables["routing-api"] = buildAsModule(binariesPath, os.Getenv("ROUTING_API_GOPATH"), "code.cloudfoundry.org/routing-api/cmd/routing-api", "-race")
+	builtExecutables["ssh-proxy"] = buildAsModule(binariesPath, os.Getenv("SSH_PROXY_GOPATH"), "code.cloudfoundry.org/diego-ssh/cmd/ssh-proxy", "-race")
 
 	os.Setenv("CGO_ENABLED", "0")
-	builtExecutables["sshd"] = lazyBuild(binariesPath, os.Getenv("SSHD_GOPATH"), "code.cloudfoundry.org/diego-ssh/cmd/sshd", "-a", "-installsuffix", "static")
+	builtExecutables["sshd"] = buildAsModule(binariesPath, os.Getenv("SSHD_GOPATH"), "code.cloudfoundry.org/diego-ssh/cmd/sshd", "-a", "-installsuffix", "static")
 	os.Unsetenv("CGO_ENABLED")
 
 	return builtExecutables
 }
 
 func compileTestedExecutablesV0() world.BuiltExecutables {
-	fmt.Println("Lazily building V0 executables")
 	binariesPath := "/tmp/v0_binaries"
 	builtExecutables := world.BuiltExecutables{}
 
-	builtExecutables["auctioneer"] = lazyBuild(binariesPath, os.Getenv("AUCTIONEER_GOPATH_V0"), "code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
-	builtExecutables["rep"] = lazyBuild(binariesPath, os.Getenv("REP_GOPATH_V0"), "code.cloudfoundry.org/rep/cmd/rep", "-race")
-	builtExecutables["bbs"] = lazyBuild(binariesPath, os.Getenv("BBS_GOPATH_V0"), "code.cloudfoundry.org/bbs/cmd/bbs", "-race")
-	builtExecutables["route-emitter"] = lazyBuild(binariesPath, os.Getenv("ROUTE_EMITTER_GOPATH_V0"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
-	builtExecutables["ssh-proxy"] = lazyBuild(binariesPath, os.Getenv("SSH_PROXY_GOPATH_V0"), "code.cloudfoundry.org/diego-ssh/cmd/ssh-proxy", "-race")
+	builtExecutables["auctioneer"] = buildWithGopath(binariesPath, os.Getenv("AUCTIONEER_GOPATH_V0"), "code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
+	builtExecutables["rep"] = buildWithGopath(binariesPath, os.Getenv("REP_GOPATH_V0"), "code.cloudfoundry.org/rep/cmd/rep", "-race")
+	builtExecutables["bbs"] = buildWithGopath(binariesPath, os.Getenv("BBS_GOPATH_V0"), "code.cloudfoundry.org/bbs/cmd/bbs", "-race")
+	builtExecutables["route-emitter"] = buildWithGopath(binariesPath, os.Getenv("ROUTE_EMITTER_GOPATH_V0"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
+	builtExecutables["ssh-proxy"] = buildWithGopath(binariesPath, os.Getenv("SSH_PROXY_GOPATH_V0"), "code.cloudfoundry.org/diego-ssh/cmd/ssh-proxy", "-race")
 
 	if os.Getenv("DIEGO_VERSION_V0") == diegoLocketLocalREVersion {
-		builtExecutables["locket"] = lazyBuild(binariesPath, os.Getenv("GOPATH_V0"), "code.cloudfoundry.org/locket/cmd/locket", "-race")
+		builtExecutables["locket"] = buildWithGopath(binariesPath, os.Getenv("GOPATH_V0"), "code.cloudfoundry.org/locket/cmd/locket", "-race")
 	}
 
 	os.Setenv("CGO_ENABLED", "0")
-	builtExecutables["sshd"] = lazyBuild(binariesPath, os.Getenv("SSHD_GOPATH_V0"), "code.cloudfoundry.org/diego-ssh/cmd/sshd", "-a", "-installsuffix", "static")
+	builtExecutables["sshd"] = buildWithGopath(binariesPath, os.Getenv("SSHD_GOPATH_V0"), "code.cloudfoundry.org/diego-ssh/cmd/sshd", "-a", "-installsuffix", "static")
 	os.Unsetenv("CGO_ENABLED")
 
 	return builtExecutables
