@@ -214,8 +214,12 @@ func compileTestedExecutablesV1() world.BuiltExecutables {
 	builtExecutables["locket"] = buildAsModule(binariesPath, os.Getenv("LOCKET_GOPATH"), "code.cloudfoundry.org/locket/cmd/locket", "-race")
 	builtExecutables["file-server"] = buildAsModule(binariesPath, os.Getenv("FILE_SERVER_GOPATH"), "code.cloudfoundry.org/fileserver/cmd/file-server", "-race")
 	builtExecutables["route-emitter"] = buildAsModule(binariesPath, os.Getenv("ROUTE_EMITTER_GOPATH"), "code.cloudfoundry.org/route-emitter/cmd/route-emitter", "-race")
+
+	Expect(os.Setenv("GO111MODULE", "auto")).To(Succeed())
 	builtExecutables["router"] = buildWithGopath(binariesPath, os.Getenv("ROUTER_GOPATH"), "code.cloudfoundry.org/gorouter", "-race")
 	builtExecutables["routing-api"] = buildAsModule(binariesPath, os.Getenv("ROUTING_API_GOPATH"), "code.cloudfoundry.org/routing-api/cmd/routing-api", "-race")
+	Expect(os.Setenv("GO111MODULE", "")).To(Succeed())
+
 	builtExecutables["ssh-proxy"] = buildAsModule(binariesPath, os.Getenv("SSH_PROXY_GOPATH"), "code.cloudfoundry.org/diego-ssh/cmd/ssh-proxy", "-race")
 
 	os.Setenv("CGO_ENABLED", "0")
@@ -228,6 +232,8 @@ func compileTestedExecutablesV1() world.BuiltExecutables {
 func compileTestedExecutablesV0() world.BuiltExecutables {
 	binariesPath := "/tmp/v0_binaries"
 	builtExecutables := world.BuiltExecutables{}
+
+	Expect(os.Setenv("GO111MODULE", "auto")).To(Succeed())
 
 	builtExecutables["auctioneer"] = buildWithGopath(binariesPath, os.Getenv("AUCTIONEER_GOPATH_V0"), "code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
 	builtExecutables["rep"] = buildWithGopath(binariesPath, os.Getenv("REP_GOPATH_V0"), "code.cloudfoundry.org/rep/cmd/rep", "-race")
@@ -243,5 +249,6 @@ func compileTestedExecutablesV0() world.BuiltExecutables {
 	builtExecutables["sshd"] = buildWithGopath(binariesPath, os.Getenv("SSHD_GOPATH_V0"), "code.cloudfoundry.org/diego-ssh/cmd/sshd", "-a", "-installsuffix", "static")
 	os.Unsetenv("CGO_ENABLED")
 
+	Expect(os.Setenv("GO111MODULE", "")).To(Succeed())
 	return builtExecutables
 }
