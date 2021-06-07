@@ -418,6 +418,7 @@ func runVizziniTests(sslConfig world.SSLConfig, gopathEnvVar string, skips ...st
 		os.Environ(),
 		fmt.Sprintf("GOPATH=%s", os.Getenv(gopathEnvVar)),
 		fmt.Sprintf("VIZZINI_CONFIG_PATH=%s", vizziniConfigFile.Name()),
+		"GO111MODULE=auto",
 	)
 
 	cmd := exec.Command("ginkgo", flags...)
